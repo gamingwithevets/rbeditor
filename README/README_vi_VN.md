@@ -1,5 +1,7 @@
 **RBEditor** là một công cụ có thể chỉnh sửa nội dung của Thùng rác và cũng có thể mở các tệp bên trong Thùng rác, điều mà Windows không cho phép bạn làm.
 
+LƯU Ý: RBEditor hiện đang ở giai đoạn beta (thử nghiệm); điều đó có nghĩa là **lỗi và trục trặc** có thể xảy ra khi bạn sử dụng phần mềm.
+
 Tệp README có các thứ tiếng: [English (US)](https://github.com/gamingwithevets/rbeditor/blob/main/README.md)
 
 # Đặc trưng
