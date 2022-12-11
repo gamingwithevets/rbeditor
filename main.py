@@ -25,9 +25,12 @@ Now scram!''')
 import os
 import traceback
 
+try: temp_path = sys._MEIPASS
+except AttributeError: temp_path = os.getcwd()
+
 import tkinter.messagebox
 try: from gui import GUI, repo_name, report_error
-except ImportError: tk.messagebox.showerror('Hmmm?', f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{os.getcwd()}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'); sys.exit()
+except ImportError: tk.messagebox.showerror('Hmmm?', f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'); sys.exit()
 
 try: g = GUI(tk.Tk())
 except Exception: report_error()

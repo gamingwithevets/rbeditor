@@ -1,10 +1,19 @@
-import os
 import sys
+if __name__ == '__main__':
+	print('Please run main.py to start the program!')
+	sys.exit()
+
+import os
+import platform
 import traceback
 import tkinter as tk
+import tkinter.ttk
 import tkinter.font
 import tkinter.messagebox
 import tkinter.filedialog
+
+try: temp_path = sys._MEIPASS
+except AttributeError: temp_path = os.getcwd()
 
 # main modules
 try: import wmi
@@ -20,7 +29,7 @@ import tempfile
 import collections
 import configparser
 try: from lang import lang
-except ImportError: tk.messagebox.showerror('Hmmm?', f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{os.getcwd()}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'); sys.exit()
+except ImportError: tk.messagebox.showerror('Hmmm?', f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'); sys.exit()
 from ctypes import windll
 from datetime import datetime, timedelta, timezone
 
@@ -30,9 +39,9 @@ from winreg import HKEY_CLASSES_ROOT as HKCR
 
 name = 'RBEditor'
 repo_name = 'rbeditor'
-version = 'Beta 1.0.0'
+version = 'Beta 1.1.0'
 about_msg = f'''\
-{name} - {version}
+{name} - {version} ({"64" if sys.maxsize > 2 ** 32 else "32"}-bit) - Running on {platform.system()} x{"64" if platform.machine().endswith("64") else "86"}
 Project page: https://github.com/gamingwithevets/{repo_name}
 
 NOTE: This version is not final! Therefore it may have bugs and/or glitches.
@@ -222,14 +231,16 @@ class RBHandler:
 				if fname in f: return f'{ind_drive_rbdir}\\{fname}'
 			except: pass
 
-	def get_rb_path_friendly(file, typ = 'I'):
+	def get_rb_path_friendly(self, file, typ = 'I'):
 		file_path = os.path.dirname(self.get_rb_path(file, typ))
-		return f'Recycle Bin in {file_path[:2]} | {file_path}'
+		return f'{self.lang["rbin_in"]} {file_path[:2]} | {file_path}'
 
 class GUI(RBHandler):
 	def __init__(self, window):
 		self.version = version
 		self.window = window
+
+		self.temp_path = temp_path
 
 		self.display_w = 800
 		self.display_h = 500
@@ -238,15 +249,24 @@ class GUI(RBHandler):
 		self.font_name = tk_font['family']
 		self.font_size = tk_font['size']
 
+		self.bold_font = (self.font_name, self.font_size, 'bold')
+
 		self.default_date_format = '%d/%m/%Y %H:%M:%S'
 		self.languages = lang.keys()
-		self.language = tk.StringVar()
+		self.language_tk = tk.StringVar()
+		self.language = ''
+
+		self.language_names = {
+		'en_US': 'English (US)',
+		'vi_VN': 'Tiếng Việt',
+		}
 
 		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\RBEditor'
 		self.ini = configparser.ConfigParser()
 		self.parse_settings()
 
 		super().__init__(self)
+		self.itemedit = ItemEdit(self)
 
 		self.get_rbdir()
 		self.init_window()
@@ -257,34 +277,38 @@ class GUI(RBHandler):
 	def parse_settings(self):
 		try:
 			self.ini.read(f'{self.appdata_folder}\\settings.ini')
-			self.language.set(self.ini['settings']['language'])
+			self.language_tk.set(self.ini['settings']['language'])
 			self.date_format = self.ini['settings']['date_format'].replace('%%', '%')
 
 		except Exception:
-			self.language.set(self.get_lang())
+			# default settings are set here
+			self.language_tk.set('system')
 		
 		self.set_lang()
 		self.date_format = self.default_date_format
 
 	def save_settings(self):
-		self.ini['settings'] = {'language': self.language.get(), 'date_format': self.date_format.replace('%', '%%')}
+		self.ini['settings'] = {'language': self.language_tk.get(), 'date_format': self.date_format.replace('%', '%%')}
 		if not os.path.exists(self.appdata_folder): os.makedirs(self.appdata_folder)
 		with open(f'{self.appdata_folder}\\settings.ini', 'w') as f: self.ini.write(f)
 
 	def get_lang(self):
-		lang = locale.windows_locale[windll.kernel32.GetUserDefaultUILanguage()]
-		return lang if lang in self.languages else 'en_US'
+		slang = locale.windows_locale[windll.kernel32.GetUserDefaultUILanguage()]
+		return slang if slang in self.languages else 'en_US'
 
 	def set_lang(self):
+		if self.language_tk.get() == 'system': self.language = self.get_lang()
+		else: self.language = self.language_tk.get()
+
 		self.lang = lang['en_US'].copy()
-		lang_new = lang[self.language.get()].copy()
+		lang_new = lang[self.language].copy()
 		for key in lang_new: self.lang[key] = lang_new[key]
-		
+
 	def change_lang(self):
 		self.set_lang()
+		self.itemedit.lang = self.lang
 		self.save_settings()
-		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_setting_change'])
-		self.refresh(True)
+		self.reload()
 
 	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], f'{self.lang["msgbox_n_a_desc"]}{name}. {self.lang["msgbox_n_a_desc2"]}!')
 
@@ -297,14 +321,15 @@ class GUI(RBHandler):
 			if custom_func == None: self.main()
 			else: custom_func() 
 
-	def set_title(self): self.window.title(f'{name} {version}')
+	def set_title(self, custom_str = None): self.window.title(f'{name} {version}{" - " + custom_str if custom_str != None else ""}')
 
 	def init_window(self):
 		self.window.geometry(f'{self.display_w}x{self.display_h}')
 		self.window.resizable(False, False)
 		self.menubar()
 		self.set_title()
-		self.window.iconbitmap('icon.ico')
+		try: self.window.iconbitmap(f'{self.temp_path}\\icon.ico')
+		except Exception: tk.messagebox.showerror('Hmmm?', f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the script is in "{self.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'); sys.exit()
 
 	def init_protocols(self):
 		self.window.protocol('WM_DELETE_WINDOW', self.quit)
@@ -337,7 +362,9 @@ class GUI(RBHandler):
 
 	def about_menu(self): tk.messagebox.showinfo(f'{self.lang["menubar_help_about"]}{name}', about_msg)
 
-	def reload(self): self.refresh(True)
+	def reload(self):
+		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_setting_change'])
+		self.refresh(True)
 
 	def menubar(self):
 		menubar = tk.Menu()
@@ -353,10 +380,12 @@ class GUI(RBHandler):
 		settings_menu = tk.Menu(menubar, tearoff = False)
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.n_a)
 
-		lang_menu = tk.Menu(settings_menu, tearoff = False)
-		lang_menu.add_radiobutton(label = 'English (US)', variable = self.language, value = 'en_US', command = self.change_lang)
-		lang_menu.add_radiobutton(label = 'Tiếng Việt', variable = self.language, value = 'vi_VN', command = self.change_lang)
-		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = lang_menu)
+		self.lang_menu = tk.Menu(settings_menu, tearoff = False)
+		self.lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang)
+		self.lang_menu.add_radiobutton(label = self.language_names['en_US'], variable = self.language_tk, value = 'en_US', command = self.change_lang)
+		self.lang_menu.add_radiobutton(label = self.language_names['vi_VN'], variable = self.language_tk, value = 'vi_VN', command = self.change_lang)
+		self.ena_dis_lang()
+		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
@@ -367,11 +396,26 @@ class GUI(RBHandler):
 
 		self.window.config(menu = menubar)
 
+	def ena_dis_lang(self):
+		for name in self.language_names:
+			# try-except nest used in case of an unused language in language_names
+			try: self.lang_menu.entryconfig(name, state = 'normal')
+			except Exception: pass
+
+		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
+		else: self.lang_menu.entryconfig(self.language_names[self.language], state = 'disabled')
+
 	def main(self):
-		try: self.draw_label(self.lang['title'], font = (self.font_name, self.font_size, 'bold'))
+		self.set_title(self.lang['main_loading'])
+
+		try: self.draw_label(self.lang['title'], font = self.bold_font)
 		except Exception: self.draw_label(self.lang['title'])
 		self.draw_blank()
-		tk.Button(text = self.lang['main_new_item'], command = self.n_a).pack()
+		button_frame = tk.Frame()
+		tk.Button(button_frame, text = self.lang['main_new_item'], command = self.n_a).pack(side = 'left')
+		tk.Button(button_frame, text = self.lang['main_restore_all'], command = self.n_a).pack(side = 'left')
+		tk.Button(button_frame, text = self.lang['main_empty_rb'], command = self.n_a).pack(side = 'right')
+		button_frame.pack()
 
 		self.get_bin_items()
 
@@ -382,22 +426,21 @@ class GUI(RBHandler):
 			self.draw_label(corrupted_text)
 
 		if len(self.bin_items) > 0:
-			frame = ScrollableFrame(self.window)
+			frame = VerticalScrolledFrame(self.window)
+			frame.pack(fill = 'both', expand = True)
 
 			for item in self.bin_items:
-				item_frame = tk.Frame(frame.scrollable_frame)
-				tk.Button(item_frame, text = self.lang['main_properties'], command = self.n_a).pack(side = 'right')
+				item_frame = tk.Frame(frame.interior)
+				tk.Button(item_frame, text = self.lang['main_properties'], command = lambda e = item: self.itemedit.show_properties(e)).pack(side = 'right')
 				tk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
 				tk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
 				tk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
 				self.draw_label(self.bin_items[item]['ogname'] if self.bin_items[item]['type'] != 'File folder' else f'{self.bin_items[item]["ogname"]} <folder>', side = 'left', master = item_frame)
 				item_frame.pack(fill = 'both')
 
-			frame.scrollable_frame.pack(fill = 'both')
-			frame.pack(fill = 'both')
-
 		else: self.draw_label(self.lang['main_rbin_empty'])
 
+		self.set_title()
 		self.window.mainloop()
 
 	def check_item_exist(self, item):
@@ -468,33 +511,112 @@ class GUI(RBHandler):
 			os.remove(f'{path}$I{item}')
 			self.refresh(True)
 
-# unfinished!
 class ItemEdit:
 	def __init__(self, gui):
 		self.gui = gui
 
 		self.draw_label = self.gui.draw_label
 		self.draw_blank = self.gui.draw_blank
+		self.bold_font = self.gui.bold_font
+
 		self.refresh = self.gui.refresh
 
+		self.lang = self.gui.lang
+
 	def show_properties(self, item):
+		def set_advanced(self, item):
+			global show_advanced
+			show_advanced = True
+			self.show_properties(item)
+
+		def quit(self):
+			global show_advanced
+			show_advanced = False
+			self.refresh(True)
+
+		# test if show_advanced is defined, if not set it to False
+		global show_advanced
+		try: show_advanced
+		except NameError: show_advanced = False
+
 		item_info = self.gui.bin_items[item]
 
 		self.refresh()
-		self.draw_label('Item properties', font = (self.font_name, self.font_size, 'bold'))
+		self.draw_label(self.lang['itemedit_properties'], font = self.bold_font)
 		self.draw_blank()
-		self.draw_label(item_info['ogname'])
-		self.draw_label(f'Original location: {item_info["oglocation"]}')
+		tk.Button(text = self.lang['back'], command = lambda e = self: quit(self)).pack(side = 'bottom')
 
-# https://blog.teclado.com/tkinter-scrollable-frames/
-class ScrollableFrame(tk.Frame):
-	def __init__(self, container, *args, **kwargs):
-		super().__init__(container, *args, **kwargs)
-		canvas = tk.Canvas(self)
-		scrollbar = tk.Scrollbar(self, orient = 'vertical', command = canvas.yview)
-		self.scrollable_frame = tk.Frame(canvas)
-		self.scrollable_frame.bind('<Configure>', lambda e: canvas.configure(scrollregion = canvas.bbox('all')))
-		canvas.create_window((0, 0), window = self.scrollable_frame, anchor = 'nw')
-		canvas.configure(yscrollcommand = scrollbar.set)
+		ogname_frame = tk.Frame()
+		self.draw_label(self.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
+		self.draw_label(item_info['ogname'], side = 'right', master = ogname_frame)
+		ogname_frame.pack(fill = 'x')
+
+		oglocation_frame = tk.Frame()
+		self.draw_label(self.lang['oglocation'], font = self.bold_font, side = 'left', master = oglocation_frame)
+		self.draw_label(item_info['oglocation'], side = 'right', master = oglocation_frame)
+		oglocation_frame.pack(fill = 'x')
+
+		type_frame = tk.Frame()
+		self.draw_label(self.lang['type'], font = self.bold_font, side = 'left', master = type_frame)
+		self.draw_label(item_info['type'], side = 'right', master = type_frame)
+		type_frame.pack(fill = 'x')
+
+		size_frame = tk.Frame()
+		self.draw_label(self.lang['size'], font = self.bold_font, side = 'left', master = size_frame)
+		self.draw_label(self.gui.convert_size(item_info['size']), side = 'right', master = size_frame)
+		size_frame.pack(fill = 'x')
+
+		deldate_frame = tk.Frame()
+		self.draw_label(self.lang['deldate'], font = self.bold_font, side = 'left', master = deldate_frame)
+		self.draw_label(item_info['deldate'], side = 'right', master = deldate_frame)
+		deldate_frame.pack(fill = 'x')
+
+		if show_advanced:
+			self.draw_blank()
+
+			rbin_name_i_frame = tk.Frame()
+			self.draw_label(self.lang['itemedit_rbin_name_i'], font = self.bold_font, side = 'left', master = rbin_name_i_frame)
+			self.draw_label(f'$I{item}', side = 'right', master = rbin_name_i_frame)
+			rbin_name_i_frame.pack(fill = 'x')
+
+			rbin_name_r_frame = tk.Frame()
+			self.draw_label(self.lang['itemedit_rbin_name_r'], font = self.bold_font, side = 'left', master = rbin_name_r_frame)
+			self.draw_label(f'$R{item}', side = 'right', master = rbin_name_r_frame)
+			rbin_name_r_frame.pack(fill = 'x')
+
+			rbin_location_frame = tk.Frame()
+			self.draw_label(self.lang['itemedit_rbin_location'], font = self.bold_font, side = 'left', master = rbin_location_frame)
+			self.draw_label('*', side = 'left', master = rbin_location_frame)
+			self.draw_label(self.gui.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
+			rbin_location_frame.pack(fill = 'x')
+			self.draw_label(self.lang['itemedit_location_asterisk'])
+		else: tk.Button(text = self.lang['itemedit_advanced'], command = lambda e = self, f = item: set_advanced(self, item)).pack()
+
+# https://stackoverflow.com/a/16198198
+class VerticalScrolledFrame(tk.ttk.Frame):
+	def __init__(self, parent, *args, **kw):
+		tk.ttk.Frame.__init__(self, parent, *args, **kw)
+
+		vscrollbar = tk.ttk.Scrollbar(self, orient = 'vertical')
+		vscrollbar.pack(fill = 'y', side = 'right')
+		canvas = tk.Canvas(self, bd = 0, highlightthickness = 0, yscrollcommand = vscrollbar.set)
 		canvas.pack(side = 'left', fill = 'both', expand = True)
-		scrollbar.pack(side = 'right', fill = 'y')
+		vscrollbar.config(command = canvas.yview)
+
+		canvas.xview_moveto(0)
+		canvas.yview_moveto(0)
+
+		self.interior = interior = tk.Frame(canvas)
+		interior_id = canvas.create_window(0, 0, window = interior, anchor = 'nw')
+
+		def _configure_interior(event):
+			size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+			canvas.config(scrollregion = '0 0 %s %s' % size)
+			if interior.winfo_reqwidth() != canvas.winfo_width():
+				canvas.config(width=interior.winfo_reqwidth())
+		interior.bind('<Configure>', _configure_interior)
+
+		def _configure_canvas(event):
+			if interior.winfo_reqwidth() != canvas.winfo_width():
+				canvas.itemconfigure(interior_id, width=canvas.winfo_width())
+		canvas.bind('<Configure>', _configure_canvas)

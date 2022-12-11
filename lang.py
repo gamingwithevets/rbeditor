@@ -1,3 +1,8 @@
+import sys
+if __name__ == '__main__':
+	print('Please run main.py to start the program!')
+	sys.exit()
+
 lang = {
 	'en_US': {
 		'title': 'RECYCLE BIN EDITOR - RBEditor',
@@ -11,6 +16,7 @@ lang = {
 		'menubar_settings': 'Settings',
 		'menubar_settings_dtformat': 'Date and time formatting',
 		'menubar_settings_language': 'Language',
+		'menubar_settings_language_system': 'System Language',
 		'menubar_help': 'Help',
 		'menubar_help_update': 'Check for updates',
 		'menubar_help_about': 'About ',
@@ -42,18 +48,31 @@ Do you want to continue?\
 		'type': 'Type',
 		'size': 'Size',
 		'deldate': 'Deletion time',
+		'rbin_in': 'Recycle Bin in',
+
+		'back': 'Back',
 
 		'ftype_desc_folder': 'File folder',
 		'ftype_desc_txt': 'Text Document',
 		'ftype_desc_ps1': 'Windows PowerShell Script',
 
+		'main_loading': 'Loading Recycle Bin, please wait...',
 		'main_rbin_empty': 'The Recycle Bin is empty!',
 		'main_new_item': 'New item',
+		'main_restore_all': 'Restore all items',
+		'main_empty_rb': 'Empty Recycle Bin',
 		'main_open': 'Open',
 		'main_delete': 'Delete',
 		'main_restore': 'Restore',
 		'main_properties': 'Properties',
 
+		'itemedit_properties': 'Item properties',
+		'itemedit_advanced': 'Advanced info',
+		'itemedit_ogname': 'Original name',
+		'itemedit_rbin_name_i': 'File name in Recycle Bin (metadata file)',
+		'itemedit_rbin_name_r': 'File name in Recycle Bin (data file)',
+		'itemedit_rbin_location': 'Location',
+		'itemedit_location_asterisk': '* You cannot access this folder\'s real contents with the File Explorer',
 	},
 	'vi_VN': {
 		'title': 'PHẦN MỀM CHỈNH SỬA THÙNG RÁC - RBEditor',
@@ -67,12 +86,13 @@ Do you want to continue?\
 		'menubar_settings': 'Cài đặt',
 		'menubar_settings_dtformat': 'Định dạng ngày giờ',
 		'menubar_settings_language': 'Ngôn ngữ',
+		'menubar_settings_language_system': 'Ngôn ngữ hệ thống',
 		'menubar_help': 'Trợ giúp',
 		'menubar_help_update': 'Kiểm tra cập nhật',
 		'menubar_help_about': 'Về ',
 
 		'msgbox_error': 'Lỗi',
-		'msgbox_warning': 'Warning',
+		'msgbox_warning': 'Cảnh báo',
 		'msgbox_n_a': 'Chưa được triển khai',
 		'msgbox_n_a_desc': 'Tính năng này chưa được triển khai trong ',
 		'msgbox_n_a_desc2': 'Xin lỗi',
@@ -98,16 +118,30 @@ Bạn có muốn tiếp tục không?\
 		'type': 'Loại',
 		'size': 'Kích thước',
 		'deldate': 'Thời gian xóa',
+		'rbin_in': 'Thùng rác ở',
+
+		'back': 'Quay lại',
 
 		'ftype_desc_folder': 'Thư mục tệp',
 		'ftype_desc_txt': 'Tài liệu văn bản',
 		'ftype_desc_ps1': 'Tập lệnh Windows PowerShell',
 
+		'main_loading': 'Đang tải Thùng rác, vui lòng đợi...',
 		'main_rbin_empty': 'Thùng rác đang trống!',
-		'main_new_item': 'Tạo mục mới',
+		'main_new_item': 'Tạo khoản mục mới',
+		'main_restore_all': 'Khôi phục mọi khoản mục',
+		'main_empty_rb': 'Làm rỗng Thùng rác',
 		'main_open': 'Mở',
 		'main_delete': 'Xóa',
 		'main_restore': 'Khôi phục',
-		'main_properties': 'Đặc tính',
+		'main_properties': 'Thuộc tính',
+
+		'itemedit_properties': 'Thuộc tính khoản mục',
+		'itemedit_advanced': 'Thông tin chuyên sâu',
+		'itemedit_ogname': 'Tên ban đầu',
+		'itemedit_rbin_name_i': 'Tên trong Thùng rác (tệp siêu dữ liệu)',
+		'itemedit_rbin_name_r': 'Tên trong Thùng rác (tệp dữ liệu)',
+		'itemedit_rbin_location': 'Vị trí',
+		'itemedit_location_asterisk': '* Bạn không thể truy cập nội dung thực của thư mục này bằng File Explorer',
 	}
 }
