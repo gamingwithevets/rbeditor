@@ -4,6 +4,10 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbeditor/blob/main/README/README_vi_VN.md)
 
+# Download
+[Download Latest Version](../../releases/latest)  
+[Download Latest Prerelease](../../releases/tag/b1.1.0)
+
 # Features
 *(as of Beta 1.1.0)*
 - Open files and folders in the Recycle Bin
