@@ -1,6 +1,6 @@
 **RBEditor** is a tool that can edit the Recycle Bin's contents and also open files inside the Recycle Bin, something that Windows doesn't let you to.
 
-README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbeditor/blob/main/README/README_vi-VN.md)
+README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbeditor/blob/main/README/README_vi_VN.md)
 
 # Features
 *(as of Beta 1.0.0)*
