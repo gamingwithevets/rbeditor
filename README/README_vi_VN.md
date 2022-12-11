@@ -4,6 +4,10 @@ LƯU Ý: RBEditor hiện đang ở giai đoạn beta (thử nghiệm); điều �
 
 Tệp README có các thứ tiếng: [English (US)](https://github.com/gamingwithevets/rbeditor/blob/main/README.md)
 
+# Link tải
+[Tải phiên bản mới nhất](../../releases/latest)  
+[Tải phiên bản beta mới nhất](../../releases/tag/b1.1.0)
+
 # Đặc trưng
 *(kể từ Beta 1.1.0)*
 - Mở tệp và thư mục trong Thùng rác
