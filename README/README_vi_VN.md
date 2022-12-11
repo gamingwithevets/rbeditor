@@ -5,7 +5,7 @@ LƯU Ý: RBEditor hiện đang ở giai đoạn beta (thử nghiệm); điều �
 Tệp README có các thứ tiếng: [English (US)](https://github.com/gamingwithevets/rbeditor/blob/main/README.md)
 
 # Đặc trưng
-*(kể từ Beta 1.0.1)*
+*(kể từ Beta 1.1.0)*
 - Mở tệp và thư mục trong Thùng rác
 - Các hành động Thùng rác thông thường (xóa, khôi phục)
 - Hỗ trợ đa ngôn ngữ
@@ -15,5 +15,5 @@ RBEditor hiện có các ngôn ngữ sau:
 
 | Ngôn ngữ | Phiên bản hỗ trợ lần đầu | Phiên bản lần cuối cập nhật |
 |--|--|--|
-| Tiếng Anh (Mỹ) | Beta 1.0.0 | Beta 1.0.1 |
-| Tiếng Việt | Beta 1.0.0 | Beta 1.0.1 |
+| Tiếng Anh (Mỹ) | Beta 1.0.0 | Beta 1.1.0 |
+| Tiếng Việt | Beta 1.0.0 | Beta 1.1.0 |
