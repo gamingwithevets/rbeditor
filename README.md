@@ -9,7 +9,7 @@ README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbed
 [Download Latest Prerelease](../../releases/tag/b1.2.0)
 
 # Features
-*(as of Beta 1.1.0)*
+*(as of Beta 1.2.0)*
 - Open files and folders in the Recycle Bin
 - Normal Recycle Bin actions (delete, restore)
 - Multilanguage support
@@ -19,5 +19,5 @@ RBEditor currently has these available languages:
 
 | Language | Version Added | Version Last Updated |
 |--|--|--|
-| English (US) | Beta 1.0.0 | Beta 1.1.0 |
-| Vietnamese | Beta 1.0.0 | Beta 1.1.0 |
+| English (US) | Beta 1.0.0 | Beta 1.2.0 |
+| Vietnamese | Beta 1.0.0 | Beta 1.2.0 |
