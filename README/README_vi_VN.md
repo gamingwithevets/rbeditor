@@ -6,7 +6,7 @@ Tệp README có các thứ tiếng: [English (US)](https://github.com/gamingwit
 
 # Link tải
 [Tải phiên bản mới nhất](../../releases/latest)  
-[Tải phiên bản beta mới nhất](../../releases/tag/b1.1.0)
+[Tải phiên bản beta mới nhất](../../releases/tag/b1.2.0)
 
 # Đặc trưng
 *(kể từ Beta 1.1.0)*
