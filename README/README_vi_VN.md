@@ -19,5 +19,5 @@ RBEditor hiện có các ngôn ngữ sau:
 
 | Ngôn ngữ | Phiên bản hỗ trợ lần đầu | Phiên bản lần cuối cập nhật |
 |--|--|--|
-| Tiếng Anh (Mỹ) | Beta 1.0.0 | Beta 1.1.0 |
-| Tiếng Việt | Beta 1.0.0 | Beta 1.1.0 |
+| Tiếng Anh (Mỹ) | Beta 1.0.0 | Beta 1.2.0 |
+| Tiếng Việt | Beta 1.0.0 | Beta 1.2.0 |
