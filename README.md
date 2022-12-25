@@ -6,7 +6,7 @@ README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbed
 
 # Download
 [Download Latest Version](../../releases/latest)  
-[Download Latest Prerelease](../../releases/tag/b1.1.0)
+[Download Latest Prerelease](../../releases/tag/b1.2.0)
 
 # Features
 *(as of Beta 1.1.0)*
