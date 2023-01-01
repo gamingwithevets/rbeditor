@@ -28,12 +28,6 @@ import binascii
 import tempfile
 import collections
 import configparser
-try: import lang
-except ImportError:
-	err_text = f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
-	print(err_text)
-	tk.messagebox.showerror('Hmmm?', err_text)
-	sys.exit()
 from ctypes import windll
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
@@ -41,10 +35,9 @@ from datetime import datetime, timedelta, timezone
 import winreg
 from winreg import HKEY_CLASSES_ROOT as HKCR
 
-
 name = 'RBEditor'
 repo_name = 'rbeditor'
-version = 'Beta 1.2.0'
+version = 'Beta 1.2.1'
 about_msg = f'''\
 {name} - {version} ({"64" if sys.maxsize > 2 ** 32 else "32"}-bit) - Running on {platform.system()} x{"64" if platform.machine().endswith("64") else "86"}
 Project page: https://github.com/gamingwithevets/{repo_name}
@@ -73,6 +66,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, \
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE \
 SOFTWARE.\
 '''
+
+try: import lang
+except ImportError:
+	err_text = f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+	print(err_text)
+	tk.messagebox.showerror('Hmmm?', err_text)
+	sys.exit()
 
 def report_error(self = None, exc = None, val = None, tb = None):
 	try: GUI.window.quit()
@@ -136,7 +136,7 @@ class RBHandler:
 			'rbin_drive': self.get_rb_path(item)[0]
 			}
 
-			self.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
+		if len(bin_items_unsorted) > 0: self.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
 
 	def get_ftype_desc(self, ext):
 		if not ext: return 'File'
@@ -213,23 +213,42 @@ class RBHandler:
 		file_path = self.get_rb_path(file_to_read)
 
 		file = open(file_path, 'rb')
-		if file.read(8) != b'\x02\x00\x00\x00\x00\x00\x00\x00': return
 
-		fsize_b = bytearray(file.read(8))
-		fsize = int.from_bytes(fsize_b, 'little')
-		deldate_b = bytearray(file.read(8))
-		deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
-		fnamelen_b = bytearray(file.read(4))
-		fnamelen = int.from_bytes(fnamelen_b, 'little')
-		fname = ''
-		for i in range(fnamelen):
-			char_b = file.read(2)
-			if char_b == b'': tk.messagebox.showerror('Error', f'Incorrect file name length in file $I{file_to_read}'); break
-			if char_b == b'\x00\x00' and i == fnamelen - 1: break
-			char = char_b.decode('utf-16le')
-			fname += char
+		version_b = bytearray(file.read(8))
+		version = int.from_bytes(version_b, 'little')
+		if version == 2:
+			fsize_b = bytearray(file.read(8))
+			fsize = int.from_bytes(fsize_b, 'little')
+			deldate_b = bytearray(file.read(8))
+			deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
+			fnamelen_b = bytearray(file.read(4))
+			fnamelen = int.from_bytes(fnamelen_b, 'little')
+			fname = ''
+			for i in range(fnamelen):
+				char_b = file.read(2)
+				if char_b == b'': tk.messagebox.showerror(self.lang['msgbox_error'], f'{self.lang["msgbox_error_incorrect_fnamelen"]} $I{file_to_read}'); break
+				if char_b == b'\x00\x00': break
+				char = char_b.decode('utf-16le')
+				fname += char
 
-		return {'fname': fname, 'fsize': fsize, 'deldate': deldate}
+		elif version == 1:
+			fsize_b = bytearray(file.read(8))
+			fsize = int.from_bytes(fsize_b, 'little')
+			deldate_b = bytearray(file.read(8))
+			deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
+			fname = ''
+			for i in range(260):
+				char_b = file.read(2)
+				if char_b == b'\x00\x00': break
+				char = char_b.decode('utf-16le')
+				fname += char
+
+		else:
+			self.gui.enable_rbin_metadata_unsupported_version_msg = True
+			tk.messagebox.showerror(self.lang['msgbox_error'], f'$I{file_to_read}: {self.lang["msgbox_error_unsupported_version"]} (v{version})')
+		
+		try: return {'fname': fname, 'fsize': fsize, 'deldate': deldate}
+		except: return {'fname': None, 'fsize': None, 'deldate': self.filetime_to_dt(0)}
 
 	def write_metadata(self, fname, fsize, deldate):
 		file_data = b''
@@ -289,6 +308,8 @@ class GUI(RBHandler):
 		self.language_tk = tk.StringVar()
 		self.language = ''
 		self.system_language_unavailable = False
+
+		self.enable_rbin_metadata_unsupported_version_msg = False
 
 		self.language_names = {
 		'en_US': 'English (US)',
@@ -465,10 +486,14 @@ class GUI(RBHandler):
 			self.draw_label(corrupted_text)
 			self.draw_blank()
 
+			if self.enable_rbin_metadata_unsupported_version_msg:
+				self.draw_blank()
+				self.draw_label(self.lang['main_rbin_metadata_unsupported_version'])
+				self.enable_rbin_metadata_unsupported_version_msg = False
 
 		if len(self.bin_items) > 0:
 			button_frame = tk.Frame()
-			ttk.Button(button_frame, text = self.lang['main_new_item'], command = self.new_item.item_maker).pack(side = 'left')
+			ttk.Button(button_frame, text = self.lang['main_new_item'], command = self.n_a).pack(side = 'left')#self.new_item.item_maker).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_restore_all'], command = self.restore_all).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_empty_rb'], command = self.delete_all).pack(side = 'right')
 			button_frame.pack()
@@ -487,7 +512,7 @@ class GUI(RBHandler):
 				item_frame.pack(fill = 'both')
 
 		else:
-			ttk.Button(text = self.lang['main_new_item'], command = self.new_item.item_maker).pack()
+			ttk.Button(text = self.lang['main_new_item'], command = self.n_a).pack()#self.new_item.item_maker).pack()
 			self.draw_blank()
 			self.draw_label(self.lang['main_rbin_empty'])
 
@@ -501,12 +526,11 @@ class GUI(RBHandler):
 
 	def open_item(self, item):
 		def start(self, path, folder = False):
-			self.window.withdraw()
-
 			if folder: os.system(f'explorer "{path}"')
-			else: os.system(f'"{path}" >nul 2>&1')
-
-			self.window.deiconify()
+			else:
+				self.window.withdraw()
+				os.system(f'"{path}" >nul 2>&1')
+				self.window.deiconify()
 		self.check_item_exist(item)
 
 		item_info = self.bin_items[item]
@@ -703,7 +727,7 @@ class ItemEdit:
 		ttk.Button(text = self.gui.lang['back'], command = lambda e = self: quit(self)).pack(side = 'bottom')
 
 		ogname_frame = ttk.Frame()
-		self.draw_label(self.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
+		self.draw_label(self.gui.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
 		self.draw_label(item_info['ogname'], side = 'right', master = ogname_frame)
 		ogname_frame.pack(fill = 'x')
 
