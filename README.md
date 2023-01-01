@@ -6,10 +6,10 @@ README file offered in: [Tiếng Việt](https://github.com/gamingwithevets/rbed
 
 # Download
 [Download Latest Version](../../releases/latest)  
-[Download Latest Prerelease](../../releases/tag/b1.2.1)
+[Download Latest Prerelease](../../releases/tag/b1.2.1_01)
 
 # Features
-*(as of Beta 1.2.1)*
+*(as of Beta 1.2.1_01)*
 - Open files and folders in the Recycle Bin
 - Normal Recycle Bin actions (delete, restore)
 - Multilanguage support
