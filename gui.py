@@ -6,6 +6,7 @@ if __name__ == '__main__':
 import os
 import platform
 import traceback
+import subprocess
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.font
@@ -37,7 +38,8 @@ from winreg import HKEY_CLASSES_ROOT as HKCR
 
 name = 'RBEditor'
 repo_name = 'rbeditor'
-version = 'Beta 1.2.1'
+version = 'Beta 1.2.1_01'
+internal_version = 'b1.2.1_01'
 about_msg = f'''\
 {name} - {version} ({"64" if sys.maxsize > 2 ** 32 else "32"}-bit) - Running on {platform.system()} x{"64" if platform.machine().endswith("64") else "86"}
 Project page: https://github.com/gamingwithevets/{repo_name}
@@ -525,13 +527,9 @@ class GUI(RBHandler):
 			self.refresh(True)
 
 	def open_item(self, item):
-		def start(self, path, folder = False):
-			if folder: os.system(f'explorer "{path}"')
-			else:
-				self.window.withdraw()
-				os.system(f'"{path}" >nul 2>&1')
-				self.window.deiconify()
-		self.check_item_exist(item)
+		def start(path, folder = False):
+			if folder: subprocess.Popen(f'explorer "{path}"', shell=True)
+			else: subprocess.Popen(path, shell=True)
 
 		item_info = self.bin_items[item]
 		ext = item_info['ext']
@@ -540,11 +538,11 @@ class GUI(RBHandler):
 		path = f'{drive}{self.rbdir}\\$R{item}'
 		
 		if os.path.isdir(path):
-			if tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_folder_warn'], icon = 'warning', default = 'no'): start(self, path, True)
+			if tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_folder_warn'], icon = 'warning', default = 'no'): start(path, True)
 		else:
 			if ext == '.lnk':
-				if tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_lnk_warn'], icon = 'warning', default = 'no'): start(self, path)
-			else: start(self, path)
+				if tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_lnk_warn'], icon = 'warning', default = 'no'): start(path)
+			else: start(path)
 
 	def get_item_info_str(self, item):
 		item_info = self.bin_items[item]
