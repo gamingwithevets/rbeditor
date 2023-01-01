@@ -6,10 +6,10 @@ Tệp README có các thứ tiếng: [English (US)](https://github.com/gamingwit
 
 # Link tải
 [Tải phiên bản mới nhất](../../releases/latest)  
-[Tải phiên bản beta mới nhất](../../releases/tag/b1.2.1)
+[Tải phiên bản beta mới nhất](../../releases/tag/b1.2.1_01)
 
 # Đặc trưng
-*(kể từ Beta 1.2.1)*
+*(kể từ phiên bản: Beta 1.2.1_01)*
 - Mở tệp và thư mục trong Thùng rác
 - Các hành động Thùng rác thông thường (xóa, khôi phục)
 - Hỗ trợ đa ngôn ngữ
