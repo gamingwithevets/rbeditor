@@ -18,7 +18,19 @@ except AttributeError: temp_path = os.getcwd()
 
 # main modules
 try: import wmi
-except ImportError: print('I need the WMI module, please install it w/ "pip install wmi".'); sys.exit()
+except ImportError:
+	print('ERROR: No WMI module found!')
+	tkinter.messagebox.showerror('Error', 'No WMI module found!')
+	sys.exit()
+
+try:
+	import requests
+	updates = True
+except ImportError:
+	updates = False
+	print('ERROR: No "requests" module found! Update checking disabled.')
+	tkinter.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
+
 import re
 import math
 import locale
@@ -27,9 +39,12 @@ import string
 import getpass
 import binascii
 import tempfile
+import win32file
+import webbrowser
 import collections
 import configparser
 from ctypes import windll
+from decimal import Decimal
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
@@ -38,8 +53,11 @@ from winreg import HKEY_CLASSES_ROOT as HKCR
 
 name = 'RBEditor'
 repo_name = 'rbeditor'
-version = 'Beta 1.2.1_01'
-internal_version = 'b1.2.1_01'
+version = 'Beta 1.2.2'
+
+internal_version = 'b1.2.2'
+prerelease = True
+
 about_msg = f'''\
 {name} - {version} ({"64" if sys.maxsize > 2 ** 32 else "32"}-bit) - Running on {platform.system()} x{"64" if platform.machine().endswith("64") else "86"}
 Project page: https://github.com/gamingwithevets/{repo_name}
@@ -120,7 +138,6 @@ class RBHandler:
 		for item in bin_items_list:
 			filedata = self.read_metadata(item)
 			if filedata == None: continue
-			if os.path.exists(filedata['fname']): continue
 			if self.get_rb_path(item, 'R') == None: continue
 
 			try: dirtest = os.path.isdir(self.get_rb_path(item, 'R'))
@@ -135,10 +152,16 @@ class RBHandler:
 			'oglocation': os.path.dirname(filedata['fname']),
 			'size': filedata['fsize'],
 			'deldate': filedata['deldate'].strftime(self.date_format),
-			'rbin_drive': self.get_rb_path(item)[0]
+			'rbin_drive': self.get_rb_path(item)[0],
+			'version': self.get_md_version(filedata['version']),
 			}
 
 		if len(bin_items_unsorted) > 0: self.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
+
+	def get_md_version(self, version):
+		if version == 1: return 'Version 1 (Windows Vista, 7, 8, 8.1)'
+		elif version == 2: return 'Version 2 (Windows 10, 11)'
+		else: return f'Version {version} (Unknown)'
 
 	def get_ftype_desc(self, ext):
 		if not ext: return 'File'
@@ -160,10 +183,8 @@ class RBHandler:
 
 	def get_drives(self):
 		drives = []
-		bitmask = windll.kernel32.GetLogicalDrives()
-		for letter in string.ascii_uppercase:
-			if bitmask & 1: drives.append(letter)
-			bitmask >>= 1
+		for drive in string.ascii_uppercase:
+			if win32file.GetDriveType(drive + ':') == win32file.DRIVE_FIXED: drives.append(drive)
 
 		return drives
 
@@ -177,39 +198,41 @@ class RBHandler:
 		return 116444736000000000 + (timegm(dt.timetuple()) * 10000000)
 
 	def convert_size(self, size_bytes):
+		def f(s): return f'{s:n}'
+
 		def add_digits(i, s, p):
 			if i != 0:
 				digits = 0
-				while(s > 0):
+				s_temp = s
+				while s_temp > 0:
 					digits += 1
-					s //= 10
-				if digits == 1:
-					s = round(size_bytes / p, 2)
-					if str(s).endswith('.0') or str(s).endswith('.1') or str(s).endswith('.2') or str(s).endswith('.3') or str(s).endswith('.4') or str(s).endswith('.5') or str(s).endswith('.6') or str(s).endswith('.7') or str(s).endswith('.8') or str(s).endswith('.9'): return s
-				elif digits == 2: s = round(size_bytes / p, 1)
-				elif digits == 3: s = round(size_bytes / p)
+					s_temp //= 10
 
-			return s
+				if digits == 1: return f(Decimal(f'{s:.2f}'))
+				elif digits == 2: return f(Decimal(f'{s:.1f}'))
+				elif digits == 3: return str(s)
+
+		def print_size(i, s, s_nostr, snl, mul): return f'{s if i <= len(snl) else f(round(size_bytes / math.pow(mul, len(snl))))} {snl[i-1] if i <= len(snl) else snl[-1]}'
 
 		if size_bytes == 0: return f'0 {self.gui.lang["bytes"]}'
 
 		size_names_pow2 = ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
 		i_pow2 = int(math.floor(math.log(size_bytes, 1024)))
 		p_pow2 = math.pow(1024, i_pow2)
-		s_pow2 = round(size_bytes / p_pow2)
+		s_pow2_notstr = size_bytes / p_pow2
 
-		size_names_pow10 = ('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')
+		size_names_pow10 = ('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB')
 		i_pow10 = int(math.floor(math.log(size_bytes, 1000)))
 		p_pow10 = math.pow(1000, i_pow10)
-		s_pow10 = round(size_bytes / p_pow10)
+		s_pow10_notstr = size_bytes / p_pow10
 
-		s_pow2 = add_digits(i_pow2, s_pow2, p_pow2)
-		s_pow10 = add_digits(i_pow10, s_pow10, p_pow10)
+		s_pow2 = add_digits(i_pow2, s_pow2_notstr, p_pow2)
+		s_pow10 = add_digits(i_pow10, s_pow10_notstr, p_pow10)
 
-		if i_pow10 == 0: return f'{size_bytes} {self.gui.lang["bytes"]}'
-		else:	
-			if i_pow2 == 0: return f'{s_pow2} {size_names_pow2[i]} ({size_bytes} {self.gui.lang["bytes"]})'
-			else: return f'{s_pow2} {size_names_pow2[i_pow2 - 1]} ({s_pow10} {size_names_pow10[i_pow10 - 1]} - {size_bytes} {self.gui.lang["bytes"]})'
+		if i_pow10 == 0: return f'{size_bytes:n} {self.gui.lang["bytes"]}'
+		else:
+			if i_pow2 == 0: return f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} ({size_bytes:n} {self.gui.lang["bytes"]})'
+			else: return f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)} ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
 
 	def read_metadata(self, file_to_read):
 		file_path = self.get_rb_path(file_to_read)
@@ -248,9 +271,8 @@ class RBHandler:
 		else:
 			self.gui.enable_rbin_metadata_unsupported_version_msg = True
 			tk.messagebox.showerror(self.lang['msgbox_error'], f'$I{file_to_read}: {self.lang["msgbox_error_unsupported_version"]} (v{version})')
-		
-		try: return {'fname': fname, 'fsize': fsize, 'deldate': deldate}
-		except: return {'fname': None, 'fsize': None, 'deldate': self.filetime_to_dt(0)}
+
+		return {'fname': fname, 'fsize': fsize, 'deldate': deldate, 'version': version}
 
 	def write_metadata(self, fname, fsize, deldate):
 		file_data = b''
@@ -286,6 +308,7 @@ class RBHandler:
 class GUI(RBHandler):
 	def __init__(self, window):
 		self.version = version
+
 		self.window = window
 
 		self.temp_path = temp_path
@@ -305,17 +328,28 @@ class GUI(RBHandler):
 		self.init_window()
 		self.init_protocols()
 
-		self.default_date_format = '%d/%m/%Y %H:%M:%S'
+		# default settings
+		self.default_date_format = '%c'
+		self.date_format = self.default_date_format
+
 		self.languages = lang.lang.keys()
-		self.language_tk = tk.StringVar()
+		self.language_tk = tk.StringVar(); self.language_tk.set('system')
 		self.language = ''
 		self.system_language_unavailable = False
+
+		self.auto_check_updates = tk.BooleanVar(); self.auto_check_updates.set(True)
+		self.check_prerelease_version = tk.BooleanVar(); self.check_prerelease_version.set(False)
 
 		self.enable_rbin_metadata_unsupported_version_msg = False
 
 		self.language_names = {
 		'en_US': 'English (US)',
 		'vi_VN': 'Tiếng Việt',
+		}
+
+		self.language_labels = {
+		'en_US': 'English',
+		'vi_VN': 'Vietnamese'
 		}
 
 		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\RBEditor'
@@ -327,10 +361,12 @@ class GUI(RBHandler):
 		self.itemedit = ItemEdit(self)
 		self.dt_menu = DTMenu(self)
 		self.new_item = NewItem(self)
+		self.updater = Updater() # updater is seperated from the main program, therefore it does not need the GUI class
 
 		self.menubar()
 
-		self.main()	
+		if self.auto_check_updates.get(): self.check_updates()
+		self.main()
 
 	def parse_settings(self):
 		try:
@@ -338,15 +374,23 @@ class GUI(RBHandler):
 			self.language_tk.set(self.ini['settings']['language'])
 			self.date_format = self.ini['settings']['date_format'].replace('%%', '%')
 
-		except Exception:
-			# default settings are set here
-			self.language_tk.set('system')
+			self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
+			self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
+
+		except Exception: print(traceback.format_exc())
 		
 		self.set_lang()
-		self.date_format = self.default_date_format
 
 	def save_settings(self):
-		self.ini['settings'] = {'language': self.language_tk.get(), 'date_format': self.date_format.replace('%', '%%')}
+		# settings are set individually to retain compatibility between versions
+		self.ini['settings'] = {}
+		self.ini['settings']['language'] = self.language_tk.get()
+		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%')
+
+		self.ini['updater'] = {}
+		self.ini['updater']['auto_check_updates'] = str(self.auto_check_updates.get())
+		self.ini['updater']['check_prerelease_version'] = str(self.check_prerelease_version.get())
+
 		if not os.path.exists(self.appdata_folder): os.makedirs(self.appdata_folder)
 		with open(f'{self.appdata_folder}\\settings.ini', 'w') as f: self.ini.write(f)
 
@@ -364,6 +408,8 @@ class GUI(RBHandler):
 				self.language_tk.set('en_US')
 				tk.messagebox.showwarning('Warning', f'Your system language is not yet available in {name}.\n\n{name}\'s language has been set to English (US).')
 		else: self.language = self.language_tk.get()
+
+		locale.setlocale(locale.LC_ALL, self.language_labels[self.language])
 
 		self.lang = lang.lang['en_US'].copy()
 		lang_new = lang.lang[self.language].copy()
@@ -455,10 +501,15 @@ class GUI(RBHandler):
 		self.ena_dis_lang()
 		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
+		updater_settings_menu = tk.Menu(settings_menu, tearoff = False)
+		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_auto'], variable = self.auto_check_updates, command = self.save_settings)
+		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_prerelease'], variable = self.check_prerelease_version, command = self.save_settings)
+		settings_menu.add_cascade(label = self.lang['menubar_settings_updates'], menu = updater_settings_menu)
+
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
 		help_menu = tk.Menu(menubar, tearoff = False)
-		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.n_a)
+		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.check_updates, state = 'normal' if updates else 'disabled')
 		help_menu.add_command(label = f'{self.lang["menubar_help_about"]}{name}', command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
@@ -472,6 +523,25 @@ class GUI(RBHandler):
 
 		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
 		else: self.lang_menu.entryconfig(self.language_names[self.language], state = 'disabled')
+
+	def check_updates(self):
+		self.set_title(self.lang['main_updater'])
+		update_info = self.updater.check_updates(self.check_prerelease_version.get())
+		self.set_title()
+
+		if update_info['error']:
+			if update_info['exceeded']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_exceeded'])
+			elif update_info['nowifi']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_offline'])
+			else: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_unknown_error'])
+		elif update_info['newupdate']:
+			if tk.messagebox.askyesno(self.lang['msgbox_updater_newupdate_title'], f'''\
+{self.lang["msgbox_updater_newupdate_title"]}
+Current version: {self.version}{self.lang["msgbox_updater_prerelease"] if prerelease else ''}
+New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if prerelease else ''}
+
+{self.lang["msgbox_updater_prompt"]}\
+''', icon = 'info'): webbrowser.open_new_tab(f'https://github.com/gamingwithevets/rbeditor/releases/tag/{update_info["tag"]}')
+		else: tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_updater_latest'])
 
 	def main(self):
 		self.set_title(self.lang['main_loading'])
@@ -586,10 +656,15 @@ class GUI(RBHandler):
 		oglocation = item_info['oglocation']
 
 		path = f'{drive}{self.rbdir}\\'
-		ogpath = oglocation + ogname
+		ogpath = oglocation + '\\' + ogname
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_restore'], f'{self.lang["msgbox_restore_desc"]}\n\n{self.get_item_info_str(item)}'): return
+
+		if os.path.exists(ogpath):
+			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_overwrite1']+ogname+self.lang['msgbox_overwrite2'], icon = 'warning'):
+				if no_refresh: return
+				else: self.refresh(True)
 		try: shutil.move(f'{path}$R{item}', ogpath)
 		except OSError: pass
 		try: os.remove(f'{path}$I{item}')
@@ -607,7 +682,9 @@ class GUI(RBHandler):
 		self.refresh(True)
 
 class DTMenu:
-	def __init__(self, gui): self.gui = gui
+	def __init__(self, gui):
+		self.gui = gui
+		self.preview_date_time = datetime(2021, 10, 4, 14, 0, 0)
 
 	def init_window(self):
 		if not self.gui.dt_win_open:
@@ -617,7 +694,7 @@ class DTMenu:
 			self.dt_win = tk.Toplevel(self.gui.window)
 			self.dt_win.geometry('500x500')
 			self.dt_win.resizable(False, False)
-			self.dt_win.protocol('WM_DELETE_WINDOW', lambda e = self: quit(e))
+			self.dt_win.protocol('WM_DELETE_WINDOW', self.quit)
 			self.dt_win.title(self.gui.lang['title_dtformat'])
 			try: self.dt_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
 			except tk.TclError:
@@ -638,32 +715,59 @@ class DTMenu:
 		self.gui.dt_win_open = False
 
 	def discard(self):
-		if self.dt_entry.get() != self.gui.date_format:
+		if self.get_dt_entry() != self.gui.date_format:
 			if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard'], icon = 'warning', default = 'no'): self.quit()
 		else: self.quit()
 
 	def preview(self):
-		self.text = self.dt_entry.get()
-		if not self.text:
-			tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_blank'])
-			return
-		if '%' not in self.text:
-			if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_no_formatting'], icon = 'warning'): return
-		self.dt_preview = True
-		self.draw_menu()
+		self.text = self.get_dt_entry(True)
+		if self.text_check():
+			self.dt_preview = True
+			self.draw_menu()
+		else: return
 
 	def save(self):
-		self.text = self.dt_entry.get()
-		if not self.text:
+		self.text = self.get_dt_entry(True, True) 
+		if self.text_check():
+			if self.gui.date_format != self.text:
+				self.gui.date_format = self.text
+				self.quit()
+				self.gui.reload()
+			else: self.quit()
+		else: return
+
+	def text_check(self):
+		if self.text == '':
 			tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_blank'])
-			return
+			return False
 		if '%' not in self.text:
-			if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_no_formatting'], icon = 'warning'): return
-		if self.gui.date_format != self.text:
-			self.gui.date_format = self.text
-			self.quit()
-			self.gui.reload()
-		else: self.quit()
+			if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_no_formatting'], icon = 'warning'): return False
+
+		return True
+
+	def get_dt_entry(self, show_warning = False, encode_check = False):
+		try:
+			dt_entry = self.dt_entry.get()
+			return dt_entry
+		except UnicodeDecodeError:
+			if show_warning:
+				tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
+				self.text = self.gui.date_format
+				self.draw_menu()
+
+			dt_entry = self.gui.date_format
+			return dt_entry
+
+		if encode_check:
+			try: self.preview_date_time.strftime(dt_entry)
+			except UnicodeEncodeError:
+				if show_warning:
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
+					self.text = self.gui.date_format
+					self.draw_menu()
+
+				dt_entry = self.gui.date_format
+				return dt_entry
 
 	def help(self):
 		tk.messagebox.showinfo(self.gui.lang['help'], self.gui.lang['dtformat_guide'])
@@ -688,7 +792,12 @@ class DTMenu:
 		scroll.pack(fill = 'x')
 		ttk.Button(self.dt_win, text = self.gui.lang['help'], command = self.help).pack()
 
-		if self.dt_preview: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{datetime(2021, 10, 4, 14, 0, 0).strftime(self.text)}', master = self.dt_win)
+		if self.dt_preview:
+			try: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.preview_date_time.strftime(self.text)}', master = self.dt_win)
+			except UnicodeEncodeError:
+				tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
+				self.dt_preview = False
+				self.draw_menu()
 
 
 class ItemEdit:
@@ -739,9 +848,10 @@ class ItemEdit:
 		self.draw_label(f'{item_info["type"]}{"" if item_info["ext"] == None else " (" + item_info["ext"].lower() + ")"}', side = 'right', master = type_frame)
 		type_frame.pack(fill = 'x')
 
+		size = item_info['size']
 		size_frame = ttk.Frame()
 		self.draw_label(self.gui.lang['size'], font = self.bold_font, side = 'left', master = size_frame)
-		self.draw_label(self.gui.convert_size(item_info['size']), side = 'right', master = size_frame)
+		self.draw_label(self.gui.convert_size(size), side = 'right', master = size_frame)
 		size_frame.pack(fill = 'x')
 
 		size_disk_frame = ttk.Frame()
@@ -773,15 +883,22 @@ class ItemEdit:
 			self.draw_label(self.gui.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
 			rbin_location_frame.pack(fill = 'x')
 
-			real_size_frame = ttk.Frame()
-			self.draw_label(self.gui.lang['itemedit_real_size'], font = self.bold_font, side = 'left', master = real_size_frame)
-			self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item, 'R'))), side = 'right', master = real_size_frame)
-			real_size_frame.pack(fill = 'x')
+			real_size = os.path.getsize(self.gui.get_rb_path(item, 'R'))
+			if real_size != size:
+				real_size_frame = ttk.Frame()
+				self.draw_label(self.gui.lang['itemedit_real_size'], font = self.bold_font, side = 'left', master = real_size_frame)
+				self.draw_label(self.gui.convert_size(real_size), side = 'right', master = real_size_frame)
+				real_size_frame.pack(fill = 'x')
 
 			metadata_size_frame = ttk.Frame()
 			self.draw_label(self.gui.lang['itemedit_metadata_size'], font = self.bold_font, side = 'left', master = metadata_size_frame)
 			self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item))), side = 'right', master = metadata_size_frame)
 			metadata_size_frame.pack(fill = 'x')
+
+			version_frame = ttk.Frame()
+			self.draw_label(self.gui.lang['itemedit_version'], font = self.bold_font, side = 'left', master = version_frame)
+			self.draw_label(item_info['version'], side = 'right', master = version_frame)
+			version_frame.pack(fill = 'x')
 
 			self.draw_label(self.gui.lang['itemedit_location_asterisk'])
 
@@ -855,6 +972,144 @@ class NewItem:
 		else: return True
 
 	def end(self): self.gui.refresh(True)
+
+# 99% of code copied from Sneky
+class Updater:
+	def __init__(self):
+		self.username, self.reponame = 'gamingwithevets', 'rbeditor'
+		self.request_limit = 5
+
+	def check_internet(self):
+		try:
+			requests.get('https://google.com')
+			return True
+		except: return False
+
+	def check_updates(self, prerelease):
+		if not self.check_internet():
+			return {
+			'newupdate': False,
+			'error': True,
+			'exceeded': False,
+			'nowifi': True
+			}
+		try:
+			versions = []
+			if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+			
+			for i in range(self.request_limit):
+				try:
+					response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases')
+					break
+				except Exception:
+					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+
+			for info in response.json(): versions.append(info['tag_name'])
+
+			if internal_version not in versions:
+				try:
+					testvar = response.json()['message']
+					if 'API rate limit exceeded for' in testvar:
+						return {
+						'newupdate': False,
+						'error': True,
+						'exceeded': True
+						}
+					else: return {'newupdate': False, 'error': False}
+				except Exception: return {'newupdate': False, 'error': False}
+			if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+
+			for i in range(self.request_limit):
+				try:
+					response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{internal_version}')
+					break
+				except Exception:
+					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+			try:
+				testvar = response.json()['message']
+				if 'API rate limit exceeded for' in testvar:
+					return {
+					'newupdate': False,
+					'error': True,
+					'exceeded': True
+					}
+				else: return {'newupdate': False, 'error': False}
+			except Exception: pass
+			currvertime = response.json()['published_at']
+			if not prerelease:
+				if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+
+				for i in range(self.request_limit):
+					try:
+						response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/latest')
+						break
+					except Exception:
+						if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+				try:
+					testvar = response.json()['message']
+					if 'API rate limit exceeded for' in testvar:
+						return {
+						'newupdate': False,
+						'error': True,
+						'exceeded': True
+						}
+					else: return {'newupdate': False, 'error': False}
+				except Exception: pass
+				if response.json()['tag_name'] != internal_version and response.json()['published_at'] > currvertime:
+					return {
+					'newupdate': True,
+					'prerelease': False,
+					'error': False,
+					'title': response.json()['name'],
+					'tag': response.json()['tag_name']
+					}
+				else:
+					return {
+					'newupdate': False,
+					'unofficial': False,
+					'error': False
+					}
+			else:
+				for version in versions:
+					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+
+					for i in range(self.request_limit):
+						try:
+							response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{version}')
+							break
+						except:
+							if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+					try:
+						testvar = response.json()['message']
+						if 'API rate limit exceeded for' in testvar:
+							return {
+							'newupdate': False,
+							'error': True,
+							'exceeded': True
+							}
+						else: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': False}
+					except Exception: pass
+					if currvertime < response.json()['published_at']:
+						return {
+						'newupdate': True,
+						'prerelease': response.json()['prerelease'],
+						'error': False,
+						'title': response.json()['name'],
+						'tag': response.json()['tag_name']
+						}
+					else:
+						return {
+						'newupdate': False,
+						'unofficial': False,
+						'error': False
+						}
+		except Exception:
+			return {
+			'newupdate': False,
+			'error': True,
+			'exceeded': False,
+			'nowifi': False
+			}
 
 # https://stackoverflow.com/a/16198198
 class VerticalScrolledFrame(tk.Frame):
