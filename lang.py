@@ -51,10 +51,9 @@ If you have used a Linux distribution you should be familiar with this process.\
 
 		'bytes': 'bytes',
 
-		'menubar_file': 'File',
-		'menubar_file_exit': 'Exit',
-		'menubar_edit': 'Edit',
-		'menubar_edit_reload': 'Reload Recycle Bin',
+		'menubar_rbin': 'RBEditor',
+		'menubar_rbin_reload': 'Reload Recycle Bin',
+		'menubar_rbin_exit': 'Exit',
 		'menubar_settings': 'Settings',
 		'menubar_settings_dtformat': 'Date and time formatting...',
 		'menubar_settings_language': 'Language',
@@ -155,6 +154,8 @@ Do you want to continue?\
 		'itemedit_rbin_name_r': 'File name in Recycle Bin (data file)',
 		'itemedit_rbin_location': 'Location',
 		'itemedit_version': 'Metadata file version',
+		'itemedit_version_text': 'Version',
+		'itemedit_version_text_unknown': '(Unknown)',
 		'itemedit_location_asterisk': '* You cannot access this folder\'s real contents with the File Explorer',
 
 		'new_item_folder': 'Folder',
@@ -209,10 +210,9 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 
 		'bytes': 'byte',
 
-		'menubar_file': 'Tệp',
-		'menubar_file_exit': 'Thoát',
-		'menubar_edit': 'Sửa',
-		'menubar_edit_reload': 'Tải lại Thùng rác',
+		'menubar_rbin': 'RBEditor',
+		'menubar_rbin_reload': 'Tải lại Thùng rác',
+		'menubar_rbin_exit': 'Thoát',
 		'menubar_settings': 'Cài đặt',
 		'menubar_settings_dtformat': 'Định dạng ngày giờ...',
 		'menubar_settings_language': 'Ngôn ngữ',
@@ -313,6 +313,8 @@ Bạn có muốn tiếp tục không?\
 		'itemedit_rbin_name_r': 'Tên trong Thùng rác (tệp dữ liệu)',
 		'itemedit_rbin_location': 'Vị trí',
 		'itemedit_version': 'Phiên bản tệp siêu dữ liệu',
+		'itemedit_version_text': 'Phiên bản',
+		'itemedit_version_text_unknown': '(Không xác định)',
 		'itemedit_location_asterisk': '* Bạn không thể truy cập nội dung thực của thư mục này bằng File Explorer',
 
 		'new_item_folder': 'Thư mục',

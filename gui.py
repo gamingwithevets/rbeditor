@@ -20,16 +20,8 @@ except AttributeError: temp_path = os.getcwd()
 try: import wmi
 except ImportError:
 	print('ERROR: No WMI module found!')
-	tkinter.messagebox.showerror('Error', 'No WMI module found!')
+	tk.messagebox.showerror('Error', 'No WMI module found!')
 	sys.exit()
-
-try:
-	import requests
-	updates = True
-except ImportError:
-	updates = False
-	print('ERROR: No "requests" module found! Update checking disabled.')
-	tkinter.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
 
 import re
 import math
@@ -53,9 +45,9 @@ from winreg import HKEY_CLASSES_ROOT as HKCR
 
 name = 'RBEditor'
 repo_name = 'rbeditor'
-version = 'Beta 1.2.2'
+version = 'Beta 1.2.2_01'
 
-internal_version = 'b1.2.2'
+internal_version = 'b1.2.2_01'
 prerelease = True
 
 about_msg = f'''\
@@ -66,7 +58,7 @@ NOTE: This version is not final! Therefore it may have bugs and/or glitches.
 
 Licensed under the MIT license
 
-Copyright (c) 2022 GamingWithEvets Inc.
+Copyright (c) 2022-2023 GamingWithEvets Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy \
 of this software and associated documentation files (the "Software"), to deal \
@@ -159,9 +151,9 @@ class RBHandler:
 		if len(bin_items_unsorted) > 0: self.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
 
 	def get_md_version(self, version):
-		if version == 1: return 'Version 1 (Windows Vista, 7, 8, 8.1)'
-		elif version == 2: return 'Version 2 (Windows 10, 11)'
-		else: return f'Version {version} (Unknown)'
+		if version == 1: return f'{self.gui.lang["itemedit_version_text"]} 1 (Windows Vista, 7, 8, 8.1)'
+		elif version == 2: return f'{self.gui.lang["itemedit_version_text"]} 2 (Windows 10, 11)'
+		else: return f'{self.gui.lang["itemedit_version_text"]} {version} {self.gui.lang["itemedit_version_text_unknown"]}'
 
 	def get_ftype_desc(self, ext):
 		if not ext: return 'File'
@@ -311,6 +303,15 @@ class GUI(RBHandler):
 
 		self.window = window
 
+		try:
+			import requests
+			self.updates = True
+		except ImportError:
+			self.updates = False
+			print('ERROR: No "requests" module found! Update checking disabled.')
+			tk.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
+		#except: pass
+
 		self.temp_path = temp_path
 
 		self.display_w = 800
@@ -365,7 +366,8 @@ class GUI(RBHandler):
 
 		self.menubar()
 
-		if self.auto_check_updates.get(): self.check_updates()
+	def start_main(self):
+		if self.auto_check_updates.get(): self.check_updates(True)
 		self.main()
 
 	def parse_settings(self):
@@ -374,8 +376,9 @@ class GUI(RBHandler):
 			self.language_tk.set(self.ini['settings']['language'])
 			self.date_format = self.ini['settings']['date_format'].replace('%%', '%')
 
-			self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
-			self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
+			if 'updater' in self.ini:
+				self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
+				self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
 
 		except Exception: print(traceback.format_exc())
 		
@@ -483,13 +486,10 @@ class GUI(RBHandler):
 	def menubar(self):
 		menubar = tk.Menu()
 
-		file_menu = tk.Menu(menubar, tearoff = False)
-		file_menu.add_command(label = self.lang['menubar_file_exit'], command = self.quit)
-		menubar.add_cascade(label = self.lang['menubar_file'], menu = file_menu)
-
-		edit_menu = tk.Menu(menubar, tearoff = False)
-		edit_menu.add_command(label = self.lang['menubar_edit_reload'], command = self.reload)
-		menubar.add_cascade(label = self.lang['menubar_edit'], menu = edit_menu)
+		rbin_menu = tk.Menu(menubar, tearoff = False)
+		rbin_menu.add_command(label = self.lang['menubar_rbin_reload'], command = self.reload)
+		rbin_menu.add_command(label = self.lang['menubar_rbin_exit'], command = self.quit)
+		menubar.add_cascade(label = self.lang['menubar_rbin'], menu = rbin_menu)
 
 		settings_menu = tk.Menu(menubar, tearoff = False)
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.dt_menu.init_window)
@@ -509,7 +509,7 @@ class GUI(RBHandler):
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
 		help_menu = tk.Menu(menubar, tearoff = False)
-		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.check_updates, state = 'normal' if updates else 'disabled')
+		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.check_updates, state = 'normal' if self.updates else 'disabled')
 		help_menu.add_command(label = f'{self.lang["menubar_help_about"]}{name}', command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
@@ -524,15 +524,16 @@ class GUI(RBHandler):
 		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
 		else: self.lang_menu.entryconfig(self.language_names[self.language], state = 'disabled')
 
-	def check_updates(self):
+	def check_updates(self, auto = False):
 		self.set_title(self.lang['main_updater'])
 		update_info = self.updater.check_updates(self.check_prerelease_version.get())
 		self.set_title()
 
 		if update_info['error']:
-			if update_info['exceeded']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_exceeded'])
-			elif update_info['nowifi']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_offline'])
-			else: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_unknown_error'])
+			if not auto:
+				if update_info['exceeded']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_exceeded'])
+				elif update_info['nowifi']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_offline'])
+				else: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_unknown_error'])
 		elif update_info['newupdate']:
 			if tk.messagebox.askyesno(self.lang['msgbox_updater_newupdate_title'], f'''\
 {self.lang["msgbox_updater_newupdate_title"]}
@@ -541,7 +542,8 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 
 {self.lang["msgbox_updater_prompt"]}\
 ''', icon = 'info'): webbrowser.open_new_tab(f'https://github.com/gamingwithevets/rbeditor/releases/tag/{update_info["tag"]}')
-		else: tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_updater_latest'])
+		else:
+			if not auto: tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_updater_latest'])
 
 	def main(self):
 		self.set_title(self.lang['main_loading'])
@@ -833,33 +835,33 @@ class ItemEdit:
 		self.draw_blank()
 		ttk.Button(text = self.gui.lang['back'], command = lambda e = self: quit(self)).pack(side = 'bottom')
 
-		ogname_frame = ttk.Frame()
+		ogname_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
 		self.draw_label(item_info['ogname'], side = 'right', master = ogname_frame)
 		ogname_frame.pack(fill = 'x')
 
-		oglocation_frame = ttk.Frame()
+		oglocation_frame = tk.Frame()
 		self.draw_label(self.gui.lang['oglocation'], font = self.bold_font, side = 'left', master = oglocation_frame)
 		self.draw_label(item_info['oglocation'], side = 'right', master = oglocation_frame)
 		oglocation_frame.pack(fill = 'x')
 
-		type_frame = ttk.Frame()
+		type_frame = tk.Frame()
 		self.draw_label(self.gui.lang['type'], font = self.bold_font, side = 'left', master = type_frame)
 		self.draw_label(f'{item_info["type"]}{"" if item_info["ext"] == None else " (" + item_info["ext"].lower() + ")"}', side = 'right', master = type_frame)
 		type_frame.pack(fill = 'x')
 
 		size = item_info['size']
-		size_frame = ttk.Frame()
+		size_frame = tk.Frame()
 		self.draw_label(self.gui.lang['size'], font = self.bold_font, side = 'left', master = size_frame)
 		self.draw_label(self.gui.convert_size(size), side = 'right', master = size_frame)
 		size_frame.pack(fill = 'x')
 
-		size_disk_frame = ttk.Frame()
+		size_disk_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_size_disk'], font = self.bold_font, side = 'left', master = size_disk_frame)
 		self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item)) + os.path.getsize(self.gui.get_rb_path(item, 'R'))), side = 'right', master = size_disk_frame)
 		size_disk_frame.pack(fill = 'x')
 
-		deldate_frame = ttk.Frame()
+		deldate_frame = tk.Frame()
 		self.draw_label(self.gui.lang['deldate'], font = self.bold_font, side = 'left', master = deldate_frame)
 		self.draw_label(item_info['deldate'], side = 'right', master = deldate_frame)
 		deldate_frame.pack(fill = 'x')
@@ -867,17 +869,17 @@ class ItemEdit:
 		if show_advanced:
 			self.draw_blank()
 
-			rbin_name_i_frame = ttk.Frame()
+			rbin_name_i_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_rbin_name_i'], font = self.bold_font, side = 'left', master = rbin_name_i_frame)
 			self.draw_label(f'$I{item}', side = 'right', master = rbin_name_i_frame)
 			rbin_name_i_frame.pack(fill = 'x')
 
-			rbin_name_r_frame = ttk.Frame()
+			rbin_name_r_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_rbin_name_r'], font = self.bold_font, side = 'left', master = rbin_name_r_frame)
 			self.draw_label(f'$R{item}', side = 'right', master = rbin_name_r_frame)
 			rbin_name_r_frame.pack(fill = 'x')
 
-			rbin_location_frame = ttk.Frame()
+			rbin_location_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_rbin_location'], font = self.bold_font, side = 'left', master = rbin_location_frame)
 			self.draw_label('*', side = 'left', master = rbin_location_frame)
 			self.draw_label(self.gui.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
@@ -885,17 +887,17 @@ class ItemEdit:
 
 			real_size = os.path.getsize(self.gui.get_rb_path(item, 'R'))
 			if real_size != size:
-				real_size_frame = ttk.Frame()
+				real_size_frame = tk.Frame()
 				self.draw_label(self.gui.lang['itemedit_real_size'], font = self.bold_font, side = 'left', master = real_size_frame)
 				self.draw_label(self.gui.convert_size(real_size), side = 'right', master = real_size_frame)
 				real_size_frame.pack(fill = 'x')
 
-			metadata_size_frame = ttk.Frame()
+			metadata_size_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_metadata_size'], font = self.bold_font, side = 'left', master = metadata_size_frame)
 			self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item))), side = 'right', master = metadata_size_frame)
 			metadata_size_frame.pack(fill = 'x')
 
-			version_frame = ttk.Frame()
+			version_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_version'], font = self.bold_font, side = 'left', master = version_frame)
 			self.draw_label(item_info['version'], side = 'right', master = version_frame)
 			version_frame.pack(fill = 'x')
@@ -924,38 +926,38 @@ class NewItem:
 		ttk.Button(text = self.gui.lang['discard'], command = self.end).pack(side = 'bottom')
 		ttk.Button(text = 'OK', command = self.end).pack(side = 'bottom')
 
-		ogname_frame = ttk.Frame()
+		ogname_frame = tk.Frame()
 		self.gui.draw_label(self.gui.lang['itemedit_ogname'], font = self.gui.bold_font, side = 'left', master = ogname_frame)
 		ogname_entry = ttk.Entry(ogname_frame, width = 30, justify = 'right')
 		ogname_entry.insert(0, name)
 		ogname_entry.pack(side = 'right')
 		ogname_frame.pack(fill = 'x')
 
-		oglocation_frame = ttk.Frame()
+		oglocation_frame = tk.Frame()
 		self.gui.draw_label(self.gui.lang['oglocation'], font = self.gui.bold_font, side = 'left', master = oglocation_frame)
 		ttk.Entry(oglocation_frame, width = 30, justify = 'right').pack(side = 'right')
 		oglocation_frame.pack(fill = 'x')
 
-		ext_frame = ttk.Frame()
+		ext_frame = tk.Frame()
 		self.gui.draw_label(self.gui.lang['new_item_ext'], font = self.gui.bold_font, side = 'left', master = ext_frame)
 		ext_entry_vcmd = (self.gui.window.register(self.ext_entry_validate), '%s')
 		ext_entry = ttk.Entry(ext_frame, width = 30, justify = 'right', validatecommand = ext_entry_vcmd)
 		ext_entry.pack(side = 'right')
 		ext_frame.pack(fill = 'x')
 
-		is_folder_frame = ttk.Frame()
+		is_folder_frame = tk.Frame()
 		self.is_folder = tk.BooleanVar(is_folder_frame)
 		self.is_folder.set(False)
 		self.gui.draw_label(self.gui.lang['new_item_folder'], font = self.gui.bold_font, side = 'left', master = is_folder_frame)
 		ttk.Checkbutton(is_folder_frame, variable = self.is_folder, onvalue = True, offvalue = False, command = lambda e = ext_entry: self.ext_entry_control(e, self.is_folder.get())).pack(side = 'right')
 		is_folder_frame.pack(fill = 'x')
 
-		size_frame = ttk.Frame()
+		size_frame = tk.Frame()
 		self.gui.draw_label(self.gui.lang['size'], font = self.gui.bold_font, side = 'left', master = size_frame)
 		ttk.Entry(size_frame, width = 30, justify = 'right').pack(side = 'right')
 		size_frame.pack(fill = 'x')
 
-		deldate_frame = ttk.Frame()
+		deldate_frame = tk.Frame()
 		self.gui.draw_label(self.gui.lang['deldate'], font = self.gui.bold_font, side = 'left', master = deldate_frame)
 		self.gui.draw_label(self.gui.lang['new_item_date_format_match'], side = 'left', master = deldate_frame)
 		deldate_entry = ttk.Entry(deldate_frame, width = 30, justify = 'right')

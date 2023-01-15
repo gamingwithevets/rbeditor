@@ -36,5 +36,7 @@ except ImportError:
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()
 
-try: g = GUI(tk.Tk())
+try:
+	g = GUI(tk.Tk())
+	g.start_main()
 except Exception: report_error()
