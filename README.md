@@ -8,7 +8,8 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 # Features
 *(as of Beta 1.3.0)*
-- Open files and folders in the Recycle Bin
+- Create files and folders in the Recycle Bin (without any deletion)
+- Open and edit files and folders in the Recycle Bin
 - Normal Recycle Bin actions (delete, restore)
 - Multilanguage support
 
