@@ -49,8 +49,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = 'Beta 1.3.0'
-internal_version = 'b1.3.0'
+version = 'Beta 1.3.0_01'
+internal_version = 'b1.3.0_01'
 prerelease = True
 
 license = 'MIT'
@@ -645,7 +645,7 @@ SOFTWARE.\
 				ttk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
 				ttk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
 				ttk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
-				self.draw_label(self.bin_items[item]['ogname'] if self.bin_items[item]['type'] != 'File folder' else f'{self.bin_items[item]["ogname"]} <folder>', side = 'left', anchor = 'midleft', master = item_frame)
+				self.draw_label(self.bin_items[item]['ogname'] if self.bin_items[item]['type'] != self.lang['ftype_desc_folder'] else f'{self.bin_items[item]["ogname"]}   {self.lang["main_folder"]}', side = 'left', anchor = 'midleft', master = item_frame)
 				item_frame.pack(fill = 'both')
 
 		else:
@@ -721,6 +721,7 @@ SOFTWARE.\
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_restore'], f'{self.lang["msgbox_restore_desc"]}\n\n{self.get_item_info_str(item)}'): return
 
+		if not os.path.exists(oglocation): os.makedirs(oglocation)
 		if os.path.exists(ogpath):
 			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_overwrite1']+ogname+self.lang['msgbox_overwrite2'], icon = 'warning'):
 				if no_refresh: return
@@ -980,7 +981,7 @@ class NewItem:
 		tuple_here = self.item_maker(False, version, name, location, is_folder, size, deldate)
 
 	def create_item_call(self, version, name, location, is_folder, size, deldate):
-		if not self.discarded: file_data = self.gui.rbhandler.write_metadata(version, location+'\\'+name, size, deldate, is_folder)
+		if not self.discarded: self.gui.rbhandler.write_metadata(version, location+'\\'+name, size, deldate, is_folder)
 		self.end()
 
 	def edit_item(self, name, location, is_folder, size, deldate): pass
@@ -993,7 +994,7 @@ class NewItem:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_size_int_error'])
 					break
 
-				try: version_int = int(size)
+				try: version_int = int(version)
 				except ValueError:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
 					break

@@ -159,6 +159,7 @@ Do you want to continue?\
 		'main_delete': 'Delete',
 		'main_restore': 'Restore',
 		'main_properties': 'Properties',
+		'main_folder': '<folder>',
 
 		'itemedit_properties': 'Item properties',
 		'itemedit_advanced': 'Advanced info',
@@ -337,6 +338,7 @@ Bạn có muốn tiếp tục không?\
 		'main_delete': 'Xóa bỏ',
 		'main_restore': 'Khôi phục',
 		'main_properties': 'Thuộc tính',
+		'main_folder': '<thư mục>',
 
 		'itemedit_properties': 'Thuộc tính khoản mục',
 		'itemedit_advanced': 'Thông tin chuyên sâu',
@@ -516,6 +518,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'main_delete': '削除',
 		'main_restore': '戻す',
 		'main_properties': 'プロパティ',
+		'main_folder': '< フォルダー >',
 
 		'itemedit_properties': '項目のプロパティ',
 		'itemedit_advanced': 'アドバンス情報',
