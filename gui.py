@@ -25,7 +25,9 @@ except ImportError:
 
 import re
 import math
+import ctypes
 import locale
+import random
 import shutil
 import string
 import getpass
@@ -35,7 +37,6 @@ import win32file
 import webbrowser
 import collections
 import configparser
-from ctypes import windll
 from decimal import Decimal
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
@@ -44,44 +45,19 @@ import winreg
 from winreg import HKEY_CLASSES_ROOT as HKCR
 
 name = 'RBEditor'
-repo_name = 'rbeditor'
-version = 'Beta 1.2.2_01'
 
-internal_version = 'b1.2.2_01'
+username = 'gamingwithevets'
+repo_name = 'rbeditor'
+
+version = 'Beta 1.3.0'
+internal_version = 'b1.3.0'
 prerelease = True
 
-about_msg = f'''\
-{name} - {version} ({"64" if sys.maxsize > 2 ** 32 else "32"}-bit) - Running on {platform.system()} x{"64" if platform.machine().endswith("64") else "86"}
-Project page: https://github.com/gamingwithevets/{repo_name}
-
-NOTE: This version is not final! Therefore it may have bugs and/or glitches.
-
-Licensed under the MIT license
-
-Copyright (c) 2022-2023 GamingWithEvets Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy \
-of this software and associated documentation files (the "Software"), to deal \
-in the Software without restriction, including without limitation the rights \
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell \
-copies of the Software, and to permit persons to whom the Software is \
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all \
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR \
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, \
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE \
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER \
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, \
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE \
-SOFTWARE.\
-'''
+license = 'MIT'
 
 try: import lang
 except ImportError:
-	err_text = f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+	err_text = f'Whoops! The script "lang.py" is required.\nCan you make sure the script is in "{temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 	print(err_text)
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()
@@ -91,9 +67,10 @@ def report_error(self = None, exc = None, val = None, tb = None):
 	except Exception: pass
 
 	e = traceback.format_exc()
+	err_text = f'Whoops! An error has occurred.\n\n{e}\nIf this error persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 
-	print(f'Whoops! An error has occurred.\n\n{e}\nIf this error persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues')
-	tk.messagebox.showerror('Whoops!', f'An error has occurred.\n\n{e}\nIf this error persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues')
+	print(err_text)
+	tk.messagebox.showerror('Whoops!', err_text)
 	sys.exit()
 
 tk.Tk.report_callback_exception = report_error
@@ -109,27 +86,28 @@ class RBHandler:
 				sid = user.SID
 				break
 
-		self.rbdir = f':\\$RECYCLE.BIN\\{sid}'
-		self.rbdir_c = f'C:\\$Recycle.Bin\\{sid}'
+		self.rbdir = self.gui.rbdir = f'\\$RECYCLE.BIN\\{sid}'
 
 	def get_bin_items(self):
 		drives = self.get_drives()
-		self.corrupted_rbdir_drives = []
+		self.gui.corrupted_rbdir_drives = []
 		bin_items_list = []
 		dirlist = []
 		errno_whitelist = [13, 2]
 		for drive in drives:
-			try: dirlist.extend(os.listdir(f'{drive}{self.rbdir}'))
+			try: dirlist.extend(os.listdir(f'{drive}:{self.rbdir}'))
 			except IOError as e:
-				if e.errno not in errno_whitelist: self.corrupted_rbdir_drives.append(drive)
+				if e.errno not in errno_whitelist: self.gui.corrupted_rbdir_drives.append(drive)
 		for f in dirlist:
 			if f[:2] == '$I': bin_items_list.append(f[2:])
 
-		self.bin_items = {}
+		self.gui.bin_items = {}
 		bin_items_unsorted = {}
 		for item in bin_items_list:
 			filedata = self.read_metadata(item)
-			if filedata == None: continue
+			if filedata['skip']:
+				self.gui.enable_rbin_metadata_unsupported_version_msg = True
+				continue
 			if self.get_rb_path(item, 'R') == None: continue
 
 			try: dirtest = os.path.isdir(self.get_rb_path(item, 'R'))
@@ -140,50 +118,67 @@ class RBHandler:
 			bin_items_unsorted[item] = {
 			'ogname': os.path.basename(filedata['fname']),
 			'type': self.gui.lang['ftype_desc_folder'] if dirtest else self.get_ftype_desc(ext),
-			'ext': None if dirtest else ext,
+			'ext': None if dirtest or not ext else ext,
 			'oglocation': os.path.dirname(filedata['fname']),
 			'size': filedata['fsize'],
-			'deldate': filedata['deldate'].strftime(self.date_format),
+			'deldate': filedata['deldate'].strftime(self.gui.date_format),
 			'rbin_drive': self.get_rb_path(item)[0],
 			'version': self.get_md_version(filedata['version']),
 			}
 
-		if len(bin_items_unsorted) > 0: self.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
+		if len(bin_items_unsorted) > 0: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
 
 	def get_md_version(self, version):
-		if version == 1: return f'{self.gui.lang["itemedit_version_text"]} 1 (Windows Vista, 7, 8, 8.1)'
-		elif version == 2: return f'{self.gui.lang["itemedit_version_text"]} 2 (Windows 10, 11)'
-		else: return f'{self.gui.lang["itemedit_version_text"]} {version} {self.gui.lang["itemedit_version_text_unknown"]}'
+		if 'itemedit_version_'+str(version) in self.gui.lang: return f'{self.gui.lang["itemedit_version_text"]}{version} {self.gui.lang["itemedit_version_"+str(version)]}'
+		else: return f'{self.gui.lang["itemedit_version_text"]}{version} {self.gui.lang["itemedit_version_text_unknown"]}'
 
 	def get_ftype_desc(self, ext):
-		if not ext: return 'File'
-		# in case UWP Windows Notepad is installed, the extension descriptions for
-		# .txt, .ini and .ps1 are embedded into the program itself.
+		if not ext: return self.gui.lang['ftype_desc_file']
+		# translations for these extensions are stored in the language packs themselves,
+		# therefore the file type descriptions need to be stored in the program itself.
 		elif ext == '.txt': return self.gui.lang['ftype_desc_txt']
-		elif ext == '.ini': return 'Configuration settings'
-		elif ext == '.ini': return self.gui.lang['ftype_desc_ps1']
+		elif ext == '.ini': return self.gui.lang['ftype_desc_ini']
+		elif ext == '.ps1': return self.gui.lang['ftype_desc_ps1']
+		elif ext == '.ico': return self.gui.lang['ftype_desc_ico']
 		else:
 			try:
 				desc = winreg.QueryValue(HKCR, winreg.QueryValue(HKCR, ext))
 				if desc: return desc
 				else:
 					if self.gui.lang['ftype_desc_file_right']: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
-					else: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
+					else: return f'{self.gui.lang["ftype_desc_file"]} {ext[1:].upper()}'
 			except Exception:
 				if self.gui.lang['ftype_desc_file_right']: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
-				else: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
+				else: return f'{self.gui.lang["ftype_desc_file"]} {ext[1:].upper()}'
+
+	def get_os_version(self):
+	    """
+	    https://stackoverflow.com/a/22325767
+
+	    Get's the OS major and minor versions.  Returns a tuple of
+	    (OS_MAJOR, OS_MINOR).
+	    """
+	    os_version = OSVERSIONINFOEXW()
+	    os_version.dwOSVersionInfoSize = ctypes.sizeof(os_version)
+	    retcode = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version))
+	    if retcode != 0:
+	        raise Exception("Failed to get OS version")
+
+	    return os_version.dwMajorVersion, os_version.dwMinorVersion
 
 	def get_drives(self):
 		drives = []
 		for drive in string.ascii_uppercase:
-			if win32file.GetDriveType(drive + ':') == win32file.DRIVE_FIXED: drives.append(drive)
+			if win32file.GetDriveType(drive+':') == win32file.DRIVE_FIXED: drives.append(drive)
 
 		return drives
 
 	def filetime_to_dt(self, ft):
+		tz = self.gui.tz
+
 		time_utc = datetime(1970, 1, 1) + timedelta(microseconds = (ft - 116444736000000000) // 10)
 		time_utc = time_utc.replace(tzinfo = timezone.utc)
-		return time_utc.astimezone()
+		return time_utc.astimezone(tz)
 
 	def dt_to_filetime(self, dt):
 		time_utc = dt.astimezone(timezone.utc)
@@ -192,7 +187,7 @@ class RBHandler:
 	def convert_size(self, size_bytes):
 		def f(s): return f'{s:n}'
 
-		def add_digits(i, s, p):
+		def add_digits(i, s):
 			if i != 0:
 				digits = 0
 				s_temp = s
@@ -207,97 +202,129 @@ class RBHandler:
 		def print_size(i, s, s_nostr, snl, mul): return f'{s if i <= len(snl) else f(round(size_bytes / math.pow(mul, len(snl))))} {snl[i-1] if i <= len(snl) else snl[-1]}'
 
 		if size_bytes == 0: return f'0 {self.gui.lang["bytes"]}'
+		elif size_bytes > 0:
+			size_names_pow2 = ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
+			i_pow2 = int(math.floor(math.log(size_bytes, 1024)))
+			s_pow2_notstr = size_bytes / math.pow(1024, i_pow2)
 
-		size_names_pow2 = ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
-		i_pow2 = int(math.floor(math.log(size_bytes, 1024)))
-		p_pow2 = math.pow(1024, i_pow2)
-		s_pow2_notstr = size_bytes / p_pow2
+			size_names_pow10 = ('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB')
+			i_pow10 = int(math.floor(math.log(size_bytes, 1000)))
+			s_pow10_notstr = size_bytes / math.pow(1000, i_pow10)
 
-		size_names_pow10 = ('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB')
-		i_pow10 = int(math.floor(math.log(size_bytes, 1000)))
-		p_pow10 = math.pow(1000, i_pow10)
-		s_pow10_notstr = size_bytes / p_pow10
+			s_pow2 = add_digits(i_pow2, s_pow2_notstr)
+			s_pow10 = add_digits(i_pow10, s_pow10_notstr)
 
-		s_pow2 = add_digits(i_pow2, s_pow2_notstr, p_pow2)
-		s_pow10 = add_digits(i_pow10, s_pow10_notstr, p_pow10)
-
-		if i_pow10 == 0: return f'{size_bytes:n} {self.gui.lang["bytes"]}'
-		else:
-			if i_pow2 == 0: return f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} ({size_bytes:n} {self.gui.lang["bytes"]})'
-			else: return f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)} ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
+			if i_pow10 == 0: return f'{size_bytes:n} {self.gui.lang["bytes"]}'
+			else:
+				if i_pow2 == 0: return f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} ({size_bytes:n} {self.gui.lang["bytes"]})'
+				else: return f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)} ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
+		else: return f'{size_bytes} {self.gui.lang["bytes"]}'
 
 	def read_metadata(self, file_to_read):
+		# initialization
+		fname = fsize = deldate = version = None
+		skip = False
+
 		file_path = self.get_rb_path(file_to_read)
 
-		file = open(file_path, 'rb')
+		bytes_required = 44
 
-		version_b = bytearray(file.read(8))
-		version = int.from_bytes(version_b, 'little')
-		if version == 2:
-			fsize_b = bytearray(file.read(8))
-			fsize = int.from_bytes(fsize_b, 'little')
-			deldate_b = bytearray(file.read(8))
-			deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
-			fnamelen_b = bytearray(file.read(4))
-			fnamelen = int.from_bytes(fnamelen_b, 'little')
-			fname = ''
-			for i in range(fnamelen):
-				char_b = file.read(2)
-				if char_b == b'': tk.messagebox.showerror(self.lang['msgbox_error'], f'{self.lang["msgbox_error_incorrect_fnamelen"]} $I{file_to_read}'); break
-				if char_b == b'\x00\x00': break
-				char = char_b.decode('utf-16le')
-				fname += char
-
-		elif version == 1:
-			fsize_b = bytearray(file.read(8))
-			fsize = int.from_bytes(fsize_b, 'little')
-			deldate_b = bytearray(file.read(8))
-			deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
-			fname = ''
-			for i in range(260):
-				char_b = file.read(2)
-				if char_b == b'\x00\x00': break
-				char = char_b.decode('utf-16le')
-				fname += char
-
+		# avoid errors with empty/fake metadata files
+		if os.path.getsize(file_path) < bytes_required:
+			tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'$I{file_to_read}{self.gui.lang["msgbox_error_invalid_metadata"]}')
+			skip = True
 		else:
-			self.gui.enable_rbin_metadata_unsupported_version_msg = True
-			tk.messagebox.showerror(self.lang['msgbox_error'], f'$I{file_to_read}: {self.lang["msgbox_error_unsupported_version"]} (v{version})')
+			file = open(file_path, 'rb')
 
-		return {'fname': fname, 'fsize': fsize, 'deldate': deldate, 'version': version}
+			version_b = bytearray(file.read(8))
+			version = int.from_bytes(version_b, 'little')
+			if version == 2:
+				fsize_b = bytearray(file.read(8))
+				fsize_u = int.from_bytes(fsize_b, 'little')
+				fsize = fsize_u if fsize_u < (1 << 64 - 1) else fsize_u - (1 << 64)
+				deldate_b = bytearray(file.read(8))
+				deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
+				fnamelen_b = bytearray(file.read(4))
+				fnamelen = int.from_bytes(fnamelen_b, 'little')
+				fname = ''
+				for i in range(fnamelen):
+					char_b = file.read(2)
+					if char_b == b'': tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'$I{file_to_read}{self.gui.lang["msgbox_error_incorrect_fnamelen"]}'); break
+					if char_b == b'\x00\x00': break
+					char = char_b.decode('utf-16le')
+					fname += char
 
-	def write_metadata(self, fname, fsize, deldate):
+			elif version == 1:
+				fsize_b = bytearray(file.read(8))
+				fsize_u = int.from_bytes(fsize_b, 'little')
+				fsize = fsize_u if fsize_u < (1 << 64 - 1) else fsize_u - (1 << 64)
+				deldate_b = bytearray(file.read(8))
+				deldate = self.filetime_to_dt(int.from_bytes(deldate_b, 'little'))
+				fname = ''
+				for i in range(260):
+					char_b = file.read(2)
+					if char_b == b'\x00\x00': break
+					char = char_b.decode('utf-16le')
+					fname += char
+
+			else:
+				self.gui.enable_rbin_metadata_unsupported_version_msg = True
+				skip = True
+				tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'$I{file_to_read}{self.gui.lang["msgbox_error_unsupported_version"]} (v{version})')
+
+		return {'fname': fname, 'fsize': fsize, 'deldate': deldate, 'version': version, 'skip': skip}
+
+	def write_metadata(self, version, fname, fsize, deldate, is_folder):
 		file_data = b''
 
-		file_data += b'\x02\x00\x00\x00\x00\x00\x00\x00'
-		file_data += fsize.to_bytes(8, 'little')
-		file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
-		fnamelen = len(fname) + 1
-		file_data += fnamelen.to_bytes(4, 'little')
-		for char in fname:
-			char_b = char.encode('utf-16le')
-			file_data += char_b
-		file_data += b'\x00\x00'
+		file_data += version.to_bytes(8, 'little')
+		if version == 2:
+			file_data += fsize.to_bytes(8, 'little')
+			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
+			fnamelen = len(fname) + 1
+			file_data += fnamelen.to_bytes(4, 'little')
+			for char in fname:
+				char_b = char.encode('utf-16le')
+				file_data += char_b
+			file_data += b'\x00\x00'
+		elif version == 1:
+			file_data += fsize.to_bytes(8, 'little')
+			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
+			fnamelen = len(fname)
+			for char in fname:
+				char_b = char.encode('utf-16le')
+				file_data += char_b
+			for i in range(260 - fnamelen): file_data += b'\x00\x00'
 
-		return file_data
+		drive = os.path.splitdrive(fname)[0]
+		ext = os.path.splitext(fname)[1]
+		ind_drive_rbdir = f'{drive}{self.rbdir}'
+		f = os.listdir(ind_drive_rbdir)
+
+		while True:
+			random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k = 6))
+			if f'$I{random_str}{ext}' not in f: break
+
+		with open(f'{ind_drive_rbdir}\\$I{random_str}{ext}', 'wb') as g: g.write(file_data)
+		if is_folder: os.mkdir(f'{ind_drive_rbdir}\\$R{random_str}{ext}')
+		else:
+			with open(f'{ind_drive_rbdir}\\$R{random_str}{ext}', 'w') as g: pass
 
 	def get_rb_path(self, file, typ = 'I'):
 		drives = self.get_drives()
 
 		fname = f'${typ}{file}'
 		for drive in drives:
-			if drive == os.getenv('systemdrive')[0]: ind_drive_rbdir = self.rbdir_c
-			else: ind_drive_rbdir = f'{drive}{self.rbdir}'
-			try:
-				f = os.listdir(ind_drive_rbdir)
-				if fname in f: return f'{ind_drive_rbdir}\\{fname}'
-			except: pass
+			ind_drive_rbdir = f'{drive}:{self.rbdir}'
+			f = os.listdir(ind_drive_rbdir)
+			if fname in f: return f'{ind_drive_rbdir}\\{fname}'
 
 	def get_rb_path_friendly(self, file, typ = 'I'):
 		file_path = os.path.dirname(self.get_rb_path(file, typ))
-		return f'{self.lang["rbin_in"]} {file_path[:2]} | {file_path}'
+		if self.gui.lang['rbin_in_right']: return f'{file_path[:2]}{self.gui.lang["rbin_in"]} | {file_path}'
+		else: return f'{self.gui.lang["rbin_in"]}{file_path[:2]} | {file_path}'
 
-class GUI(RBHandler):
+class GUI:
 	def __init__(self, window):
 		self.version = version
 
@@ -305,6 +332,7 @@ class GUI(RBHandler):
 
 		try:
 			import requests
+			global requests
 			self.updates = True
 		except ImportError:
 			self.updates = False
@@ -325,13 +353,13 @@ class GUI(RBHandler):
 
 		self.bold_font = (self.font_name, self.font_size, 'bold')
 
-		self.get_rbdir()
 		self.init_window()
 		self.init_protocols()
 
 		# default settings
 		self.default_date_format = '%c'
 		self.date_format = self.default_date_format
+		self.tz = datetime.now(timezone.utc).astimezone().tzinfo
 
 		self.languages = lang.lang.keys()
 		self.language_tk = tk.StringVar(); self.language_tk.set('system')
@@ -345,25 +373,29 @@ class GUI(RBHandler):
 
 		self.language_names = {
 		'en_US': 'English (US)',
+		'ja_JP': '日本語',
 		'vi_VN': 'Tiếng Việt',
 		}
 
 		self.language_labels = {
 		'en_US': 'English',
-		'vi_VN': 'Vietnamese'
+		'ja_JP': 'Japanese',
+		'vi_VN': 'Vietnamese',
 		}
 
 		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\RBEditor'
 		self.ini = configparser.ConfigParser()
 		self.parse_settings()
 
+		self.refreshing = True
 
-		super().__init__(self)
+		self.rbhandler = RBHandler(self)
 		self.itemedit = ItemEdit(self)
 		self.dt_menu = DTMenu(self)
 		self.new_item = NewItem(self)
 		self.updater = Updater() # updater is seperated from the main program, therefore it does not need the GUI class
 
+		self.rbhandler.get_rbdir()
 		self.menubar()
 
 	def start_main(self):
@@ -398,7 +430,7 @@ class GUI(RBHandler):
 		with open(f'{self.appdata_folder}\\settings.ini', 'w') as f: self.ini.write(f)
 
 	def get_lang(self):
-		slang = locale.windows_locale[windll.kernel32.GetUserDefaultUILanguage()]
+		slang = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()]
 		if slang in self.languages: return slang
 		else:
 			self.system_language_unavailable = True
@@ -409,7 +441,8 @@ class GUI(RBHandler):
 			self.language = self.get_lang()
 			if self.system_language_unavailable:
 				self.language_tk.set('en_US')
-				tk.messagebox.showwarning('Warning', f'Your system language is not yet available in {name}.\n\n{name}\'s language has been set to English (US).')
+				self.save_settings()
+				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English (US).')
 		else: self.language = self.language_tk.get()
 
 		locale.setlocale(locale.LC_ALL, self.language_labels[self.language])
@@ -423,9 +456,11 @@ class GUI(RBHandler):
 		self.save_settings()
 		self.reload()
 
-	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], f'{self.lang["msgbox_n_a_desc"]}{name}. {self.lang["msgbox_n_a_desc2"]}!')
+	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], f'{self.lang["msgbox_n_a_desc"]}{name}{self.lang["msgbox_n_a_desc2"]}')
 
 	def refresh(self, load_func = False, custom_func = None):
+		self.refreshing = True
+
 		for w in self.window.winfo_children(): w.destroy()
 		self.menubar()
 
@@ -477,10 +512,36 @@ class GUI(RBHandler):
 		if master == None: master = self.window
 		self.draw_label('', master = master)
 
-	def about_menu(self): tk.messagebox.showinfo(f'{self.lang["menubar_help_about"]}{name}', about_msg)
+	def about_menu(self): tk.messagebox.showinfo(f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', f'''\
+{name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {'' if self.lang['about_running_on_right'] else self.lang['about_running_on']}{platform.system()} x{'64' if platform.machine().endswith('64') else '86'}{self.lang['about_running_on'] if self.lang['about_running_on_right'] else ''}
+{self.lang['about_project_page']}https://github.com/{username}/{repo_name}
+{self.lang['about_beta_build'] if prerelease else ''}
+{self.lang['about_licensed']}{license}{self.lang['about_licensed2'] if self.lang['about_licensed_right'] else ''}
+
+Copyright (c) 2022-2023 GamingWithEvets Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy \
+of this software and associated documentation files (the "Software"), to deal \
+in the Software without restriction, including without limitation the rights \
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell \
+copies of the Software, and to permit persons to whom the Software is \
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all \
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR \
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, \
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE \
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER \
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, \
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE \
+SOFTWARE.\
+''')
 
 	def reload(self):
 		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_setting_change'])
+		self.itemedit.show_advanced = False
 		self.refresh(True)
 
 	def menubar(self):
@@ -496,8 +557,7 @@ class GUI(RBHandler):
 
 		self.lang_menu = tk.Menu(settings_menu, tearoff = False)
 		self.lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang, state = 'disabled' if self.system_language_unavailable else 'normal')
-		self.lang_menu.add_radiobutton(label = self.language_names['en_US'], variable = self.language_tk, value = 'en_US', command = self.change_lang)
-		self.lang_menu.add_radiobutton(label = self.language_names['vi_VN'], variable = self.language_tk, value = 'vi_VN', command = self.change_lang)
+		for i in self.language_names: self.lang_menu.add_radiobutton(label = self.language_names[i], variable = self.language_tk, value = i, command = self.change_lang)
 		self.ena_dis_lang()
 		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
@@ -510,7 +570,7 @@ class GUI(RBHandler):
 
 		help_menu = tk.Menu(menubar, tearoff = False)
 		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.check_updates, state = 'normal' if self.updates else 'disabled')
-		help_menu.add_command(label = f'{self.lang["menubar_help_about"]}{name}', command = self.about_menu)
+		help_menu.add_command(label = f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
 		self.window.config(menu = menubar)
@@ -536,23 +596,26 @@ class GUI(RBHandler):
 				else: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_unknown_error'])
 		elif update_info['newupdate']:
 			if tk.messagebox.askyesno(self.lang['msgbox_updater_newupdate_title'], f'''\
-{self.lang["msgbox_updater_newupdate_title"]}
-Current version: {self.version}{self.lang["msgbox_updater_prerelease"] if prerelease else ''}
-New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if prerelease else ''}
+{self.lang['msgbox_updater_newupdate']}
 
-{self.lang["msgbox_updater_prompt"]}\
+{self.lang['msgbox_updater_currver']} {self.version}{self.lang['msgbox_updater_prerelease'] if prerelease else ''}
+{self.lang['msgbox_updater_newver']} {update_info['title']}{self.lang['msgbox_updater_prerelease'] if prerelease else ''}
+
+{self.lang['msgbox_updater_prompt']}\
 ''', icon = 'info'): webbrowser.open_new_tab(f'https://github.com/gamingwithevets/rbeditor/releases/tag/{update_info["tag"]}')
 		else:
 			if not auto: tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_updater_latest'])
 
 	def main(self):
-		self.set_title(self.lang['main_loading'])
-
 		try: self.draw_label(self.lang['title'], font = self.bold_font)
 		except Exception: self.draw_label(self.lang['title'])
 		self.draw_blank()
 
-		self.get_bin_items()
+		if self.refreshing:
+			self.set_title(self.lang['main_loading'])
+			self.rbhandler.get_bin_items()
+			self.refreshing = False
+
 		if len(self.corrupted_rbdir_drives) > 0:
 			corrupted_text = f'{self.lang["main_warning"]}\n'
 			for drive in self.corrupted_rbdir_drives: corrupted_text += f'{self.lang["main_rb_corrupt"]} {drive}: {self.lang["main_rb_corrupt_2"]}\n'
@@ -567,7 +630,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 
 		if len(self.bin_items) > 0:
 			button_frame = tk.Frame()
-			ttk.Button(button_frame, text = self.lang['main_new_item'], command = self.n_a).pack(side = 'left')#self.new_item.item_maker).pack(side = 'left')
+			ttk.Button(button_frame, text = self.lang['main_new_item'], command = self.new_item.create_item).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_restore_all'], command = self.restore_all).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_empty_rb'], command = self.delete_all).pack(side = 'right')
 			button_frame.pack()
@@ -586,7 +649,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 				item_frame.pack(fill = 'both')
 
 		else:
-			ttk.Button(text = self.lang['main_new_item'], command = self.n_a).pack()#self.new_item.item_maker).pack()
+			ttk.Button(text = self.lang['main_new_item'], command = self.new_item.create_item).pack()
 			self.draw_blank()
 			self.draw_label(self.lang['main_rbin_empty'])
 
@@ -594,7 +657,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 		self.window.mainloop()
 
 	def check_item_exist(self, item):
-		if not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}{self.rbdir}\\$R{item}'):
+		if not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$R{item}'):
 			tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_not_in_rb'])
 			self.refresh(True)
 
@@ -607,7 +670,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 		ext = item_info['ext']
 		drive = item_info['rbin_drive']
 
-		path = f'{drive}{self.rbdir}\\$R{item}'
+		path = f'{drive}:{self.rbdir}\\$R{item}'
 		
 		if os.path.isdir(path):
 			if tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_folder_warn'], icon = 'warning', default = 'no'): start(path, True)
@@ -624,20 +687,15 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 		size = item_info['size']
 		deldate = item_info['deldate']
 
-		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
+		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
 
 	def delete_item(self, item, no_prompt = False, no_refresh = False):		
 		self.check_item_exist(item)
 
 		item_info = self.bin_items[item]
 		drive = item_info['rbin_drive']
-		ogname = item_info['ogname']
-		oglocation = item_info['oglocation']
-		item_type = item_info['type']
-		size = item_info['size']
-		deldate = item_info['deldate']
 
-		path = f'{drive}{self.rbdir}\\'
+		path = f'{drive}:{self.rbdir}\\'
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_delete'], f'{self.lang["msgbox_delete_desc"]}\n\n{self.get_item_info_str(item)}', icon = 'warning', default = 'no'): return
@@ -657,7 +715,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 		ogname = item_info['ogname']
 		oglocation = item_info['oglocation']
 
-		path = f'{drive}{self.rbdir}\\'
+		path = f'{drive}:{self.rbdir}\\'
 		ogpath = oglocation + '\\' + ogname
 
 		if not no_prompt:
@@ -679,7 +737,7 @@ New version: {update_info["title"]}{self.lang["msgbox_updater_prerelease"] if pr
 		self.refresh(True)
 
 	def restore_all(self):
-		if tk.messagebox.askyesno(self.lang['msgbox_restore_all'], self.lang['msgbox_restore_all_desc'], icon = 'warning', default = 'no'):
+		if tk.messagebox.askyesno(self.lang['msgbox_restore_all'], self.lang['msgbox_restore_all_desc']):
 			for item in self.bin_items: self.restore_item(item, True, True)
 		self.refresh(True)
 
@@ -812,28 +870,15 @@ class ItemEdit:
 
 		self.refresh = self.gui.refresh
 
+		self.show_advanced = False
+
 	def show_properties(self, item):
-		def set_advanced(self, item, val = True):
-			global show_advanced
-			show_advanced = val
-			self.show_properties(item)
-
-		def quit(self):
-			global show_advanced
-			show_advanced = False
-			self.refresh(True)
-
-		# test if show_advanced is defined, if not set it to False
-		global show_advanced
-		try: show_advanced
-		except NameError: show_advanced = False
-
 		item_info = self.gui.bin_items[item]
 
 		self.refresh()
 		self.draw_label(self.gui.lang['itemedit_properties'], font = self.bold_font)
 		self.draw_blank()
-		ttk.Button(text = self.gui.lang['back'], command = lambda e = self: quit(self)).pack(side = 'bottom')
+		ttk.Button(text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 
 		ogname_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
@@ -853,12 +898,12 @@ class ItemEdit:
 		size = item_info['size']
 		size_frame = tk.Frame()
 		self.draw_label(self.gui.lang['size'], font = self.bold_font, side = 'left', master = size_frame)
-		self.draw_label(self.gui.convert_size(size), side = 'right', master = size_frame)
+		self.draw_label(self.gui.rbhandler.convert_size(size), side = 'right', master = size_frame)
 		size_frame.pack(fill = 'x')
 
 		size_disk_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_size_disk'], font = self.bold_font, side = 'left', master = size_disk_frame)
-		self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item)) + os.path.getsize(self.gui.get_rb_path(item, 'R'))), side = 'right', master = size_disk_frame)
+		self.draw_label(self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item)) + os.path.getsize(self.gui.rbhandler.get_rb_path(item, 'R'))), side = 'right', master = size_disk_frame)
 		size_disk_frame.pack(fill = 'x')
 
 		deldate_frame = tk.Frame()
@@ -866,7 +911,7 @@ class ItemEdit:
 		self.draw_label(item_info['deldate'], side = 'right', master = deldate_frame)
 		deldate_frame.pack(fill = 'x')
 
-		if show_advanced:
+		if self.show_advanced:
 			self.draw_blank()
 
 			rbin_name_i_frame = tk.Frame()
@@ -882,19 +927,19 @@ class ItemEdit:
 			rbin_location_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_rbin_location'], font = self.bold_font, side = 'left', master = rbin_location_frame)
 			self.draw_label('*', side = 'left', master = rbin_location_frame)
-			self.draw_label(self.gui.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
+			self.draw_label(self.gui.rbhandler.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
 			rbin_location_frame.pack(fill = 'x')
 
-			real_size = os.path.getsize(self.gui.get_rb_path(item, 'R'))
+			real_size = os.path.getsize(self.gui.rbhandler.get_rb_path(item, 'R'))
 			if real_size != size:
 				real_size_frame = tk.Frame()
 				self.draw_label(self.gui.lang['itemedit_real_size'], font = self.bold_font, side = 'left', master = real_size_frame)
-				self.draw_label(self.gui.convert_size(real_size), side = 'right', master = real_size_frame)
+				self.draw_label(self.gui.rbhandler.convert_size(real_size), side = 'right', master = real_size_frame)
 				real_size_frame.pack(fill = 'x')
 
 			metadata_size_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_metadata_size'], font = self.bold_font, side = 'left', master = metadata_size_frame)
-			self.draw_label(self.gui.convert_size(os.path.getsize(self.gui.get_rb_path(item))), side = 'right', master = metadata_size_frame)
+			self.draw_label(self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item))), side = 'right', master = metadata_size_frame)
 			metadata_size_frame.pack(fill = 'x')
 
 			version_frame = tk.Frame()
@@ -904,88 +949,149 @@ class ItemEdit:
 
 			self.draw_label(self.gui.lang['itemedit_location_asterisk'])
 
-			ttk.Button(text = self.gui.lang['itemedit_reduced'], command = lambda e = self, f = item: set_advanced(self, item, False)).pack()
-		else: ttk.Button(text = self.gui.lang['itemedit_advanced'], command = lambda e = self, f = item: set_advanced(self, item)).pack()
+			ttk.Button(text = self.gui.lang['itemedit_reduced'], command = lambda e = item: self.set_advanced(e, False)).pack()
+		else: ttk.Button(text = self.gui.lang['itemedit_advanced'], command = lambda e = item: self.set_advanced(e)).pack()
+
+	def set_advanced(self, item, val = True):
+		self.show_advanced = val
+		self.show_properties(item)
+
+	def quit(self):
+		self.show_advanced = False
+		self.refresh(True)
 
 class NewItem:
-	def __init__(self, gui): self.gui = gui
+	def __init__(self, gui):
+		self.gui = gui
+		self.ntfs_blacklist = '\\/:*?"<>|'
+		self.supported_versions = (1, 2)
 
-	def create_item(self): pass
+		self.return_mode = False
+		self.discarded = False
 
-	def item_maker(self):
-		# initialization
-		name = 'New Recycle Bin item'
-		location = ''
+	def create_item(self):
+		version = '1' if self.gui.rbhandler.get_os_version() <= (6, 3) else '2'
+		name = self.gui.lang['new_item_name']
+		location = 'C:'
+		is_folder = False
 		size = 0
-		deldate_tmp = datetime.utcnow().replace(tzinfo = timezone.utc).astimezone()
-		deldate_str = deldate_tmp.strftime(self.gui.date_format)
+		deldate = datetime.utcnow().replace(tzinfo = timezone.utc)
 
-		self.gui.refresh()
-		self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
-		self.gui.draw_blank()
-		ttk.Button(text = self.gui.lang['discard'], command = self.end).pack(side = 'bottom')
-		ttk.Button(text = 'OK', command = self.end).pack(side = 'bottom')
+		tuple_here = self.item_maker(False, version, name, location, is_folder, size, deldate)
 
-		ogname_frame = tk.Frame()
-		self.gui.draw_label(self.gui.lang['itemedit_ogname'], font = self.gui.bold_font, side = 'left', master = ogname_frame)
-		ogname_entry = ttk.Entry(ogname_frame, width = 30, justify = 'right')
-		ogname_entry.insert(0, name)
-		ogname_entry.pack(side = 'right')
-		ogname_frame.pack(fill = 'x')
+	def create_item_call(self, version, name, location, is_folder, size, deldate):
+		if not self.discarded: file_data = self.gui.rbhandler.write_metadata(version, location+'\\'+name, size, deldate, is_folder)
+		self.end()
 
-		oglocation_frame = tk.Frame()
-		self.gui.draw_label(self.gui.lang['oglocation'], font = self.gui.bold_font, side = 'left', master = oglocation_frame)
-		ttk.Entry(oglocation_frame, width = 30, justify = 'right').pack(side = 'right')
-		oglocation_frame.pack(fill = 'x')
+	def edit_item(self, name, location, is_folder, size, deldate): pass
 
-		ext_frame = tk.Frame()
-		self.gui.draw_label(self.gui.lang['new_item_ext'], font = self.gui.bold_font, side = 'left', master = ext_frame)
-		ext_entry_vcmd = (self.gui.window.register(self.ext_entry_validate), '%s')
-		ext_entry = ttk.Entry(ext_frame, width = 30, justify = 'right', validatecommand = ext_entry_vcmd)
-		ext_entry.pack(side = 'right')
-		ext_frame.pack(fill = 'x')
+	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate):
+		if return_mode:
+			for i in range(1): # allows using break to skip code
+				try: size_int = int(size)
+				except ValueError:
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_size_int_error'])
+					break
 
-		is_folder_frame = tk.Frame()
-		self.is_folder = tk.BooleanVar(is_folder_frame)
-		self.is_folder.set(False)
-		self.gui.draw_label(self.gui.lang['new_item_folder'], font = self.gui.bold_font, side = 'left', master = is_folder_frame)
-		ttk.Checkbutton(is_folder_frame, variable = self.is_folder, onvalue = True, offvalue = False, command = lambda e = ext_entry: self.ext_entry_control(e, self.is_folder.get())).pack(side = 'right')
-		is_folder_frame.pack(fill = 'x')
+				try: version_int = int(size)
+				except ValueError:
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
+					break
+				if version_int not in self.supported_versions:
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
+					break
 
-		size_frame = tk.Frame()
-		self.gui.draw_label(self.gui.lang['size'], font = self.gui.bold_font, side = 'left', master = size_frame)
-		ttk.Entry(size_frame, width = 30, justify = 'right').pack(side = 'right')
-		size_frame.pack(fill = 'x')
+				self.create_item_call(version_int, name, location, is_folder, size_int, deldate)
+		else:
+			self.version_TEMP = version
+			self.name_TEMP = name
+			self.location_TEMP = location
+			self.is_folder_TEMP = tk.BooleanVar(); self.is_folder_TEMP.set(is_folder)
+			self.size_TEMP = size
+			self.deldate_TEMP = deldate
 
-		deldate_frame = tk.Frame()
-		self.gui.draw_label(self.gui.lang['deldate'], font = self.gui.bold_font, side = 'left', master = deldate_frame)
-		self.gui.draw_label(self.gui.lang['new_item_date_format_match'], side = 'left', master = deldate_frame)
-		deldate_entry = ttk.Entry(deldate_frame, width = 30, justify = 'right')
-		deldate_entry.insert(0, deldate_str)
-		deldate_entry.pack(side = 'right')
-		deldate_frame.pack(fill = 'x')
+			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format)
 
-	def ext_entry_control(self, entry, value):
-		if value: entry.configure(state = 'disabled')
-		else: entry.configure(state = 'normal')
+			self.gui.refresh()
+			self.gui.window.protocol('WM_DELETE_WINDOW', lambda: self.discard(True))
+			self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
+			self.gui.draw_blank()
+			ttk.Button(text = self.gui.lang['discard'], command = self.discard).pack(side = 'bottom')
+			ok_button = ttk.Button(text = 'OK', command = self.set_return)
+			ok_button.pack(side = 'bottom')
 
-	def ext_entry_validate(self, char):
-		if char in '\\/:*?"<>|.': return False
-		else: return True
+			ogname_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['itemedit_ogname'], font = self.gui.bold_font, side = 'left', master = ogname_frame)
+			self.ogname_entry = ttk.Entry(ogname_frame, width = 30, justify = 'right')
+			self.ogname_entry.insert(0, self.name_TEMP)
+			self.ogname_entry.pack(side = 'right')
+			ogname_frame.pack(fill = 'x')
 
-	def end(self): self.gui.refresh(True)
+			oglocation_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['oglocation'], font = self.gui.bold_font, side = 'left', master = oglocation_frame)
+			self.oglocation_entry = ttk.Entry(oglocation_frame, width = 30, justify = 'right')
+			self.oglocation_entry.insert(0, self.location_TEMP)
+			self.oglocation_entry.pack(side = 'right')
+			oglocation_frame.pack(fill = 'x')
+
+			is_folder_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['new_item_folder'], font = self.gui.bold_font, side = 'left', master = is_folder_frame)
+			ttk.Checkbutton(is_folder_frame, variable = self.is_folder_TEMP).pack(side = 'right')
+			is_folder_frame.pack(fill = 'x')
+
+			size_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['size'], font = self.gui.bold_font, side = 'left', master = size_frame)
+			self.gui.draw_label(self.gui.lang['new_item_bytes_note'], side = 'left', master = size_frame)
+			self.size_entry = ttk.Entry(size_frame, width = 30, justify = 'right')
+			self.size_entry.insert(0, self.size_TEMP)
+			self.size_entry.pack(side = 'right')
+			size_frame.pack(fill = 'x')
+
+			deldate_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['deldate'], font = self.gui.bold_font, side = 'left', master = deldate_frame)
+			ttk.Button(deldate_frame, text = self.gui.lang['edit'], command = self.datetime_editor).pack(side = 'right')
+			self.gui.draw_label(deldate_TEMP_str, side = 'right', master = deldate_frame)
+			deldate_frame.pack(fill = 'x')
+
+			version_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['itemedit_version'], font = self.gui.bold_font, side = 'left', master = version_frame)
+			self.version_entry = ttk.Entry(version_frame, width = 30, justify = 'right')
+			self.version_entry.insert(0, self.version_TEMP)
+			self.version_entry.pack(side = 'right')
+			version_frame.pack(fill = 'x')
+
+			self.gui.window.mainloop()
+
+	def set_return(self): self.item_maker(True, self.version_entry.get(), self.ogname_entry.get(), self.oglocation_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP)
+
+	def datetime_editor(self): self.gui.n_a()
+
+	def validate_text(self, text, blacklist):
+		for char in text:
+			if char in blacklist: return False
+			else: return True
+
+	def discard(self, delete_window = False):
+		if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no'):
+			self.discarded = True
+			if delete_window: sys.exit()
+			else: self.end()
+
+	def end(self):
+		self.gui.window.protocol('WM_DELETE_WINDOW', self.gui.quit)
+		self.gui.refresh(True)
 
 # 99% of code copied from Sneky
 class Updater:
 	def __init__(self):
-		self.username, self.reponame = 'gamingwithevets', 'rbeditor'
+		self.username, self.reponame = username, repo_name
 		self.request_limit = 5
 
 	def check_internet(self):
 		try:
 			requests.get('https://google.com')
 			return True
-		except: return False
+		except Exception: return False
 
 	def check_updates(self, prerelease):
 		if not self.check_internet():
@@ -1112,6 +1218,20 @@ class Updater:
 			'exceeded': False,
 			'nowifi': False
 			}
+
+# https://stackoverflow.com/a/22325767
+class OSVERSIONINFOEXW(ctypes.Structure):
+    _fields_ = [('dwOSVersionInfoSize', ctypes.c_ulong),
+                ('dwMajorVersion', ctypes.c_ulong),
+                ('dwMinorVersion', ctypes.c_ulong),
+                ('dwBuildNumber', ctypes.c_ulong),
+                ('dwPlatformId', ctypes.c_ulong),
+                ('szCSDVersion', ctypes.c_wchar*128),
+                ('wServicePackMajor', ctypes.c_ushort),
+                ('wServicePackMinor', ctypes.c_ushort),
+                ('wSuiteMask', ctypes.c_ushort),
+                ('wProductType', ctypes.c_byte),
+                ('wReserved', ctypes.c_byte)]
 
 # https://stackoverflow.com/a/16198198
 class VerticalScrolledFrame(tk.Frame):
