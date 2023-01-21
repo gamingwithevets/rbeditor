@@ -2,6 +2,9 @@
 
 NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen when you use the program.
 
+![RBEditor GIF](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW)  
+*(If the GIF doesn't show, click [here](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW) to see it)*
+
 # Download
 [Download Latest Version](../../releases/latest)  
 [Download Latest Prerelease](../../releases/tag/b1.3.0_01)
