@@ -1032,8 +1032,8 @@ class NewItem:
 				elif version_int == 2 and self.gui.rbhandler.get_os_version() <= (6, 3):
 					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
 
-			if edit_mode: self.edit_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate, *os.path.splitext(random_str))
-			else: self.create_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate)
+				if edit_mode: self.edit_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate, *os.path.splitext(random_str))
+				else: self.create_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate)
 		else:
 			self.version_TEMP = version
 			self.name_TEMP = name
