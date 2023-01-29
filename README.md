@@ -2,7 +2,9 @@
 
 NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen when you use the program.
 
-![RBEditor GIF](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW)  
+**Supports Windows 7 - Windows 11** *(untested with Windows Vista)*
+
+![RBEditor Beta 1.3.0_01 GIF](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW)  
 *(If the GIF doesn't show, click [here](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW) to see it)*
 
 # Download
