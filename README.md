@@ -9,7 +9,7 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 # Download
 [Download Latest Version](../../releases/latest)  
-[Download Latest Prerelease](../../releases/tag/b1.3.1)
+[Download Latest Prerelease](../../releases/tag/b1.3.1_01)
 
 # Features
 - Create files and folders in the Recycle Bin (without any deletion)
