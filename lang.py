@@ -88,6 +88,7 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'msgbox_error_invalid_metadata': ': Invalid metadata file',
 		'msgbox_unicode_error': 'This text contains invalid Unicode characters.',
 		'msgbox_size_int_error': 'Size must be an integer!',
+		'msgbox_rbin_name_change': 'Do you want to update the Recycle Bin file name\'s extension with the new one you set?\nIf you leave it as-is, you might see "issues" when opening it.',
 		'msgbox_n_a': 'Not implemented',
 		'msgbox_n_a_desc': 'This feature is not implemented into this version of ',
 		'msgbox_n_a_desc2': '. Sorry!',
@@ -178,10 +179,12 @@ Do you want to continue?\
 		'itemedit_version_text_unknown': '(Unknown)',
 		'itemedit_location_asterisk': '* You cannot access this folder\'s real contents with the File Explorer',
 
+		'new_item_edit': 'Edit existing item',
 		'new_item_folder': 'Folder?',
 		'new_item_bytes_note': '(in bytes)',
 		'new_item_ext': 'Extension',
 		'new_item_name': 'New Recycle Bin item',
+		'new_item_version_warning': 'This metadata file version cannot be read by this version of Windows. Continue anyway?',
 	},
 	'vi_VN': {
 		'title': 'PHẦN MỀM CHỈNH SỬA THÙNG RÁC - RBEditor',
@@ -267,6 +270,7 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'msgbox_error_unsupported_version_friendly': 'Phiên bản tệp siêu dữ liệu không hợp lệ!',
 		'msgbox_unicode_error': 'Chuỗi kí tự này chứa kí tự Unicode không hợp lệ.',
 		'msgbox_size_int_error': 'Kích thước phải là một số nguyên!',
+		'msgbox_rbin_name_change': 'Bạn có muốn cập nhật phần mở rộng của tên tệp Thùng rác bằng phần mở rộng mới mà bạn đã đặt không?\nNếu bạn để nó nguyên trạng, bạn có thể thấy "sự cố" khi mở nó.',
 		'msgbox_n_a': 'Chưa được triển khai',
 		'msgbox_n_a_desc': 'Tính năng này không được triển khai trong phiên bản này của ',
 		'msgbox_n_a_desc2': '. Xin lỗi!',
@@ -357,10 +361,12 @@ Bạn có muốn tiếp tục không?\
 		'itemedit_version_text_unknown': '(Không xác định)',
 		'itemedit_location_asterisk': '* Bạn không thể truy cập nội dung thực của thư mục này bằng File Explorer',
 
+		'new_item_edit': 'Chỉnh sửa khoản mục',
 		'new_item_folder': 'Thư mục?',
 		'new_item_bytes_note': '(tính bằng byte)',
 		'new_item_ext': 'Phần mở rộng',
 		'new_item_name': 'Khoản mục Thùng rác mới',
+		'new_item_version_warning': 'Phiên bản tệp siêu dữ liệu này không thể đọc được bằng phiên bản Windows này. Bạn có vẫn muốn tiếp tục không?',
 	},
 	'ja_JP': {
 		'title': 'ごみ箱エディタ - RBEditor',
@@ -447,6 +453,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_error_invalid_date': '：無効な削除日',
 		'msgbox_unicode_error': 'このテキストには無効な Unicode 文字が含まれています。',
 		'msgbox_size_int_error': 'サイズは整数でなければなりません！',
+		'msgbox_rbin_name_change': 'ごみ箱のファイル名の拡張子を、設定した新しい拡張子に更新しますか？\nそのままにしておくと、開いたときに「問題」が発生する可能性があります。',
 		'msgbox_n_a': '未実装',
 		'msgbox_n_a_desc': 'この機能は、このバージョンの ',
 		'msgbox_n_a_desc2': ' には実装されていません。 ごめん！',
@@ -537,9 +544,11 @@ Linux ディストリビューションを使用したことがある場合は�
 		'itemedit_version_text_unknown': '（わからない）',
 		'itemedit_location_asterisk': '* ファイル エクスプローラーでこのフォルダーの実際の内容にアクセスすることはできません',
 
+		'new_item_edit': '既存の項目を編集',
 		'new_item_folder': 'フォルダ？',
 		'new_item_bytes_note': '（バイト単位）',
 		'new_item_ext': '拡大',
 		'new_item_name': '新しいごみ箱項目',
+		'new_item_version_warning': 'このメタデータ ファイルのバージョンは、このバージョンの Windows では読み取ることができません。 それでも続行しますか？',
 	},
 }

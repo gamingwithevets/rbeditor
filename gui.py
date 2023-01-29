@@ -25,6 +25,7 @@ except ImportError:
 
 import re
 import math
+import time
 import ctypes
 import locale
 import random
@@ -38,7 +39,6 @@ import webbrowser
 import collections
 import configparser
 from decimal import Decimal
-from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
 import winreg
@@ -49,8 +49,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = 'Beta 1.3.0_01'
-internal_version = 'b1.3.0_01'
+version = 'Beta 1.3.1'
+internal_version = 'b1.3.1'
 prerelease = True
 
 license = 'MIT'
@@ -121,9 +121,9 @@ class RBHandler:
 			'ext': None if dirtest or not ext else ext,
 			'oglocation': os.path.dirname(filedata['fname']),
 			'size': filedata['fsize'],
-			'deldate': filedata['deldate'].strftime(self.gui.date_format),
+			'deldate': filedata['deldate'],
 			'rbin_drive': self.get_rb_path(item)[0],
-			'version': self.get_md_version(filedata['version']),
+			'version': filedata['version'],
 			}
 
 		if len(bin_items_unsorted) > 0: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
@@ -174,15 +174,13 @@ class RBHandler:
 		return drives
 
 	def filetime_to_dt(self, ft):
-		tz = self.gui.tz
-
 		time_utc = datetime(1970, 1, 1) + timedelta(microseconds = (ft - 116444736000000000) // 10)
 		time_utc = time_utc.replace(tzinfo = timezone.utc)
-		return time_utc.astimezone(tz)
+		return time_utc.astimezone(self.gui.tz)
 
 	def dt_to_filetime(self, dt):
-		time_utc = dt.astimezone(timezone.utc)
-		return 116444736000000000 + (timegm(dt.timetuple()) * 10000000)
+		ft = 116444736000000000 + int((dt - datetime(1970, 1, 1, tzinfo = timezone.utc)).total_seconds() * 10000000)
+		return ft
 
 	def convert_size(self, size_bytes):
 		def f(s): return f'{s:n}'
@@ -296,19 +294,7 @@ class RBHandler:
 				file_data += char_b
 			for i in range(260 - fnamelen): file_data += b'\x00\x00'
 
-		drive = os.path.splitdrive(fname)[0]
-		ext = os.path.splitext(fname)[1]
-		ind_drive_rbdir = f'{drive}{self.rbdir}'
-		f = os.listdir(ind_drive_rbdir)
-
-		while True:
-			random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k = 6))
-			if f'$I{random_str}{ext}' not in f: break
-
-		with open(f'{ind_drive_rbdir}\\$I{random_str}{ext}', 'wb') as g: g.write(file_data)
-		if is_folder: os.mkdir(f'{ind_drive_rbdir}\\$R{random_str}{ext}')
-		else:
-			with open(f'{ind_drive_rbdir}\\$R{random_str}{ext}', 'w') as g: pass
+		return file_data
 
 	def get_rb_path(self, file, typ = 'I'):
 		drives = self.get_drives()
@@ -508,9 +494,9 @@ class GUI:
 		text = tk.Label(master, text = text, font = font, fg = color, bg = bg, width = recwidth, height = recheight, anchor = anc)
 		text.pack(side = side, anchor = anc)
 
-	def draw_blank(self, master = None):
+	def draw_blank(self, side = 'top', master = None):
 		if master == None: master = self.window
-		self.draw_label('', master = master)
+		self.draw_label('', side = side, master = master)
 
 	def about_menu(self): tk.messagebox.showinfo(f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', f'''\
 {name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {'' if self.lang['about_running_on_right'] else self.lang['about_running_on']}{platform.system()} x{'64' if platform.machine().endswith('64') else '86'}{self.lang['about_running_on'] if self.lang['about_running_on_right'] else ''}
@@ -657,14 +643,14 @@ SOFTWARE.\
 		self.window.mainloop()
 
 	def check_item_exist(self, item):
-		if not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$R{item}'):
+		if not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$I{item}') or not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$R{item}'):
 			tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_not_in_rb'])
 			self.refresh(True)
 
 	def open_item(self, item):
 		def start(path, folder = False):
-			if folder: subprocess.Popen(f'explorer "{path}"', shell=True)
-			else: subprocess.Popen(path, shell=True)
+			if folder: subprocess.Popen(f'explorer "{path}"', shell = True)
+			else: os.startfile(path)
 
 		item_info = self.bin_items[item]
 		ext = item_info['ext']
@@ -685,7 +671,7 @@ SOFTWARE.\
 		oglocation = item_info['oglocation']
 		item_type = item_info['type']
 		size = item_info['size']
-		deldate = item_info['deldate']
+		deldate = item_info['deldate'].strftime(self.date_format)
 
 		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
 
@@ -792,6 +778,7 @@ class DTMenu:
 		if self.text_check():
 			if self.gui.date_format != self.text:
 				self.gui.date_format = self.text
+				self.gui.save_settings()
 				self.quit()
 				self.gui.reload()
 			else: self.quit()
@@ -837,7 +824,7 @@ class DTMenu:
 		for w in self.dt_win.winfo_children(): w.destroy()
 
 		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.dt_win)
-		self.gui.draw_blank(self.dt_win)
+		self.gui.draw_blank(master = self.dt_win)
 		ttk.Button(self.dt_win, text = self.gui.lang['discard'], command = self.discard).pack(side = 'bottom')
 		ttk.Button(self.dt_win, text = self.gui.lang['preview'], command = self.preview).pack(side = 'bottom')
 		ttk.Button(self.dt_win, text = 'OK', command = self.save).pack(side = 'bottom')
@@ -880,6 +867,8 @@ class ItemEdit:
 		self.draw_label(self.gui.lang['itemedit_properties'], font = self.bold_font)
 		self.draw_blank()
 		ttk.Button(text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
+		self.draw_blank(side = 'bottom')
+		ttk.Button(text = self.gui.lang['edit'], command = lambda e = item_info, f = item: self.gui.new_item.edit_item(e['version'], e['ogname'], e['oglocation'], os.path.isdir(self.gui.rbhandler.get_rb_path(f, 'R')), e['size'], e['deldate'].astimezone(timezone.utc), f)).pack(side = 'bottom')
 
 		ogname_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
@@ -909,7 +898,7 @@ class ItemEdit:
 
 		deldate_frame = tk.Frame()
 		self.draw_label(self.gui.lang['deldate'], font = self.bold_font, side = 'left', master = deldate_frame)
-		self.draw_label(item_info['deldate'], side = 'right', master = deldate_frame)
+		self.draw_label(item_info['deldate'].strftime(self.gui.date_format), side = 'right', master = deldate_frame)
 		deldate_frame.pack(fill = 'x')
 
 		if self.show_advanced:
@@ -945,7 +934,7 @@ class ItemEdit:
 
 			version_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_version'], font = self.bold_font, side = 'left', master = version_frame)
-			self.draw_label(item_info['version'], side = 'right', master = version_frame)
+			self.draw_label(self.gui.rbhandler.get_md_version(item_info['version']), side = 'right', master = version_frame)
 			version_frame.pack(fill = 'x')
 
 			self.draw_label(self.gui.lang['itemedit_location_asterisk'])
@@ -978,15 +967,54 @@ class NewItem:
 		size = 0
 		deldate = datetime.utcnow().replace(tzinfo = timezone.utc)
 
-		tuple_here = self.item_maker(False, version, name, location, is_folder, size, deldate)
+		self.item_maker(False, version, name, location, is_folder, size, deldate)
 
-	def create_item_call(self, version, name, location, is_folder, size, deldate):
-		if not self.discarded: self.gui.rbhandler.write_metadata(version, location+'\\'+name, size, deldate, is_folder)
+	def create_item_call(self, version, path, is_folder, size, deldate):
+		if not self.discarded:
+			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder)
+
+			drive = os.path.splitdrive(path)[0]
+			ext = os.path.splitext(path)[1]
+			rbdir = f'{drive}{self.gui.rbdir}'
+			f = os.listdir(rbdir)
+
+			while True:
+				random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k = 6))
+				if f'$I{random_str}{ext}' not in f: break
+
+			rbname = random_str + ext
+			with open(f'{rbdir}\\$I{random_str}{ext}', 'wb') as g: g.write(file_data)
+			if is_folder: os.mkdir(f'{rbdir}\\$R{random_str}{ext}')
+			else:
+				with open(f'{rbdir}\\$R{random_str}{ext}', 'w') as g: pass
+
 		self.end()
 
-	def edit_item(self, name, location, is_folder, size, deldate): pass
+	def edit_item(self, version, name, location, is_folder, size, deldate, random_str):
+		self.gui.itemedit.show_advanced = False
+		self.item_maker(False, version, name, location, is_folder, size, deldate, random_str, True)
 
-	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate):
+	def edit_item_call(self, version, path, is_folder, size, deldate, random_str, old_ext):
+		if not self.discarded:
+			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder)
+
+			drive = os.path.splitdrive(path)[0]
+			ext = os.path.splitext(path)[1]
+			rbdir = f'{drive}{self.gui.rbdir}'
+			rbname = random_str + old_ext
+			f = os.listdir(rbdir)
+
+			if not is_folder and os.path.exists(rbdir+'\\$I'+rbname) and os.path.exists(rbdir+'\\$R'+rbname) and ext != old_ext:
+				if tk.messagebox.askyesno(self.gui.lang['msgbox_notice'], self.gui.lang['msgbox_rbin_name_change'], icon = 'info'):
+					os.rename(f'{rbdir}\\$I{rbname}', f'{rbdir}\\$I{random_str}{ext}')
+					os.rename(f'{rbdir}\\$R{rbname}', f'{rbdir}\\$R{random_str}{ext}')
+					rbname = random_str + ext
+
+			with open(f'{rbdir}\\$I{rbname}', 'wb') as g: g.write(file_data)
+
+		self.end()
+
+	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate, random_str = None, edit_mode = False):
 		if return_mode:
 			for i in range(1): # allows using break to skip code
 				try: size_int = int(size)
@@ -1001,8 +1029,11 @@ class NewItem:
 				if version_int not in self.supported_versions:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
 					break
+				elif version_int == 1 and self.gui.rbhandler.get_os_version() <= (6, 3):
+					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
 
-				self.create_item_call(version_int, name, location, is_folder, size_int, deldate)
+			if edit_mode: self.edit_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate, *os.path.splitext(random_str))
+			else: self.create_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate)
 		else:
 			self.version_TEMP = version
 			self.name_TEMP = name
@@ -1010,14 +1041,17 @@ class NewItem:
 			self.is_folder_TEMP = tk.BooleanVar(); self.is_folder_TEMP.set(is_folder)
 			self.size_TEMP = size
 			self.deldate_TEMP = deldate
+			self.random_str_TEMP = random_str
+			self.edit_mode_TEMP = edit_mode
 
 			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format)
 
 			self.gui.refresh()
 			self.gui.window.protocol('WM_DELETE_WINDOW', lambda: self.discard(True))
-			self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
+			if self.edit_mode_TEMP: self.gui.draw_label(self.gui.lang['new_item_edit'], font = self.gui.bold_font)
+			else: self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
 			self.gui.draw_blank()
-			ttk.Button(text = self.gui.lang['discard'], command = self.discard).pack(side = 'bottom')
+			ttk.Button(text = self.gui.lang['discard'], command = lambda: self.discard(False, self.edit_mode_TEMP)).pack(side = 'bottom')
 			ok_button = ttk.Button(text = 'OK', command = self.set_return)
 			ok_button.pack(side = 'bottom')
 
@@ -1063,7 +1097,7 @@ class NewItem:
 
 			self.gui.window.mainloop()
 
-	def set_return(self): self.item_maker(True, self.version_entry.get(), self.ogname_entry.get(), self.oglocation_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP)
+	def set_return(self): self.item_maker(True, self.version_entry.get(), self.ogname_entry.get(), self.oglocation_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP)
 
 	def datetime_editor(self): self.gui.n_a()
 
@@ -1072,8 +1106,8 @@ class NewItem:
 			if char in blacklist: return False
 			else: return True
 
-	def discard(self, delete_window = False):
-		if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no'):
+	def discard(self, delete_window = False, edit_mode = False):
+		if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard'] if edit_mode else self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no'):
 			self.discarded = True
 			if delete_window: sys.exit()
 			else: self.end()
