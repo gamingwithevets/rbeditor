@@ -7,13 +7,13 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 # Download
 [Download Latest Version](../../releases/latest)  
-[Download Latest Prerelease](../../releases/tag/b1.3.0_01)
+[Download Latest Prerelease](../../releases/tag/b1.3.1)
 
 # Features
-*(as of Beta 1.3.0_01)*
 - Create files and folders in the Recycle Bin (without any deletion)
 - Open and edit files and folders in the Recycle Bin
 - Normal Recycle Bin actions (delete, restore)
+- Edit Recycle Bin file metadata
 - Multilanguage support
 
 # Languages
