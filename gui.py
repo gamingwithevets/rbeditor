@@ -49,8 +49,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = 'Beta 1.3.1'
-internal_version = 'b1.3.1'
+version = 'Beta 1.3.1_01'
+internal_version = 'b1.3.1_01'
 prerelease = True
 
 license = 'MIT'
@@ -1029,7 +1029,7 @@ class NewItem:
 				if version_int not in self.supported_versions:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
 					break
-				elif version_int == 1 and self.gui.rbhandler.get_os_version() <= (6, 3):
+				elif version_int == 2 and self.gui.rbhandler.get_os_version() <= (6, 3):
 					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
 
 			if edit_mode: self.edit_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate, *os.path.splitext(random_str))
