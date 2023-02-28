@@ -34,10 +34,12 @@ import string
 import getpass
 import binascii
 import tempfile
+import threading
 import win32file
 import webbrowser
 import collections
 import configparser
+from queue import Queue
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 
@@ -49,8 +51,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = 'Beta 1.3.1_01'
-internal_version = 'b1.3.1_01'
+version = 'Beta 1.4.0'
+internal_version = 'b1.4.0'
 prerelease = True
 
 license = 'MIT'
@@ -62,7 +64,7 @@ except ImportError:
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()
 
-def report_error(self = None, exc = None, val = None, tb = None):
+def report_error(self = None, exc = None, val = None, tb = None, term = True):
 	try: GUI.window.quit()
 	except Exception: pass
 
@@ -71,7 +73,7 @@ def report_error(self = None, exc = None, val = None, tb = None):
 
 	print(err_text)
 	tk.messagebox.showerror('Whoops!', err_text)
-	sys.exit()
+	if term: sys.exit()
 
 tk.Tk.report_callback_exception = report_error
 
@@ -104,22 +106,26 @@ class RBHandler:
 		self.gui.bin_items = {}
 		bin_items_unsorted = {}
 		for item in bin_items_list:
+			if self.get_rb_path(item, 'R') == None: continue
+
 			filedata = self.read_metadata(item)
 			if filedata['skip']:
 				self.gui.enable_rbin_metadata_unsupported_version_msg = True
 				continue
-			if self.get_rb_path(item, 'R') == None: continue
 
 			try: dirtest = os.path.isdir(self.get_rb_path(item, 'R'))
 			except: dirtest = False
 
 			ext = os.path.splitext(filedata['fname'])[1].lower()
+			oglocation = os.path.dirname(filedata['fname'])
+			ogname = os.path.basename(filedata['fname'])
+			if ogname == '': ogname = oglocation
 
 			bin_items_unsorted[item] = {
-			'ogname': os.path.basename(filedata['fname']),
+			'ogname': ogname,
 			'type': self.gui.lang['ftype_desc_folder'] if dirtest else self.get_ftype_desc(ext),
 			'ext': None if dirtest or not ext else ext,
-			'oglocation': os.path.dirname(filedata['fname']),
+			'oglocation': oglocation,
 			'size': filedata['fsize'],
 			'deldate': filedata['deldate'],
 			'rbin_drive': self.get_rb_path(item)[0],
@@ -152,19 +158,19 @@ class RBHandler:
 				else: return f'{self.gui.lang["ftype_desc_file"]} {ext[1:].upper()}'
 
 	def get_os_version(self):
-	    """
-	    https://stackoverflow.com/a/22325767
+		"""
+		https://stackoverflow.com/a/22325767
 
-	    Get's the OS major and minor versions.  Returns a tuple of
-	    (OS_MAJOR, OS_MINOR).
-	    """
-	    os_version = OSVERSIONINFOEXW()
-	    os_version.dwOSVersionInfoSize = ctypes.sizeof(os_version)
-	    retcode = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version))
-	    if retcode != 0:
-	        raise Exception("Failed to get OS version")
+		Get's the OS major and minor versions.  Returns a tuple of
+		(OS_MAJOR, OS_MINOR).
+		"""
+		os_version = OSVERSIONINFOEXW()
+		os_version.dwOSVersionInfoSize = ctypes.sizeof(os_version)
+		retcode = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version))
+		if retcode != 0:
+			raise Exception("Failed to get OS version")
 
-	    return os_version.dwMajorVersion, os_version.dwMinorVersion
+		return os_version.dwMajorVersion, os_version.dwMinorVersion
 
 	def get_drives(self):
 		drives = []
@@ -225,7 +231,7 @@ class RBHandler:
 
 		file_path = self.get_rb_path(file_to_read)
 
-		bytes_required = 44
+		bytes_required = 20
 
 		# avoid errors with empty/fake metadata files
 		if os.path.getsize(file_path) < bytes_required:
@@ -324,7 +330,6 @@ class GUI:
 			self.updates = False
 			print('ERROR: No "requests" module found! Update checking disabled.')
 			tk.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
-		#except: pass
 
 		self.temp_path = temp_path
 
@@ -332,6 +337,7 @@ class GUI:
 		self.display_h = 500
 
 		self.dt_win_open = False
+		self.updater_win_open = False
 
 		tk_font = tk.font.nametofont('TkDefaultFont').actual()
 		self.font_name = tk_font['family']
@@ -364,9 +370,9 @@ class GUI:
 		}
 
 		self.language_labels = {
-		'en_US': 'English',
-		'ja_JP': 'Japanese',
-		'vi_VN': 'Vietnamese',
+		'en_US': 'en-US',
+		'ja_JP': 'ja-JP',
+		'vi_VN': 'vi-VN',
 		}
 
 		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\RBEditor'
@@ -379,13 +385,14 @@ class GUI:
 		self.itemedit = ItemEdit(self)
 		self.dt_menu = DTMenu(self)
 		self.new_item = NewItem(self)
-		self.updater = Updater() # updater is seperated from the main program, therefore it does not need the GUI class
+		self.updater = Updater() # the updater does not need the GUI class as it runs independently of it.
+		self.updater_gui = Updater_GUI(self)
 
 		self.rbhandler.get_rbdir()
 		self.menubar()
 
 	def start_main(self):
-		if self.auto_check_updates.get(): self.check_updates(True)
+		if self.auto_check_updates.get(): self.window.after(0, lambda: self.updater_gui.init_window(self.auto_check_updates.get()))
 		self.main()
 
 	def parse_settings(self):
@@ -555,7 +562,7 @@ SOFTWARE.\
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
 		help_menu = tk.Menu(menubar, tearoff = False)
-		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.check_updates, state = 'normal' if self.updates else 'disabled')
+		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.updater_gui.init_window, state = 'normal' if self.updates else 'disabled')
 		help_menu.add_command(label = f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
@@ -602,17 +609,16 @@ SOFTWARE.\
 			self.rbhandler.get_bin_items()
 			self.refreshing = False
 
+		if self.enable_rbin_metadata_unsupported_version_msg:
+			self.draw_label(self.lang['main_rbin_metadata_unsupported_version'])
+			self.enable_rbin_metadata_unsupported_version_msg = False
+
 		if len(self.corrupted_rbdir_drives) > 0:
 			corrupted_text = f'{self.lang["main_warning"]}\n'
 			for drive in self.corrupted_rbdir_drives: corrupted_text += f'{self.lang["main_rb_corrupt"]} {drive}: {self.lang["main_rb_corrupt_2"]}\n'
 			corrupted_text = corrupted_text[:-1]
 			self.draw_label(corrupted_text)
 			self.draw_blank()
-
-			if self.enable_rbin_metadata_unsupported_version_msg:
-				self.draw_blank()
-				self.draw_label(self.lang['main_rbin_metadata_unsupported_version'])
-				self.enable_rbin_metadata_unsupported_version_msg = False
 
 		if len(self.bin_items) > 0:
 			button_frame = tk.Frame()
@@ -685,12 +691,14 @@ SOFTWARE.\
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_delete'], f'{self.lang["msgbox_delete_desc"]}\n\n{self.get_item_info_str(item)}', icon = 'warning', default = 'no'): return
-		if os.path.isdir(path): shutil.rmtree(f'{path}$R{item}', ignore_errors = True)
+		if os.path.isdir(path):
+			try: shutil.rmtree(f'{path}$R{item}')
+			except OSError: self.report_error(term = False)
 		else:
 			try: os.remove(f'{path}$R{item}')
-			except OSError: pass
+			except OSError: self.report_error(term = False)
 		try: os.remove(f'{path}$I{item}')
-		except OSError: pass
+		except OSError: self.report_error(term = False)
 		if not no_refresh: self.refresh(True)
 
 	def restore_item(self, item, no_prompt = False, no_refresh = False):
@@ -701,8 +709,10 @@ SOFTWARE.\
 		ogname = item_info['ogname']
 		oglocation = item_info['oglocation']
 
+
 		path = f'{drive}:{self.rbdir}\\'
-		ogpath = oglocation + '\\' + ogname
+		if os.path.splitdrive(oglocation)[0] == '': ogpath = f'{os.getenv("USERPROFILE")}\\Desktop{oglocation}\\{ogname}'
+		else: ogpath = f'{oglocation}\\{ogname}'
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_restore'], f'{self.lang["msgbox_restore_desc"]}\n\n{self.get_item_info_str(item)}'): return
@@ -712,10 +722,13 @@ SOFTWARE.\
 			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_overwrite1']+ogname+self.lang['msgbox_overwrite2'], icon = 'warning'):
 				if no_refresh: return
 				else: self.refresh(True)
+
 		try: shutil.move(f'{path}$R{item}', ogpath)
-		except OSError: pass
+		except OSError: self.report_error(term = False)
+
 		try: os.remove(f'{path}$I{item}')
-		except OSError: pass
+		except OSError: self.report_error(term = False)
+
 		if not no_refresh: self.refresh(True)
 
 	def delete_all(self):
@@ -861,6 +874,8 @@ class ItemEdit:
 		self.show_advanced = False
 
 	def show_properties(self, item):
+		self.gui.check_item_exist(item)
+
 		item_info = self.gui.bin_items[item]
 
 		self.refresh()
@@ -877,6 +892,7 @@ class ItemEdit:
 
 		oglocation_frame = tk.Frame()
 		self.draw_label(self.gui.lang['oglocation'], font = self.bold_font, side = 'left', master = oglocation_frame)
+		self.draw_label('*', side = 'left', master = oglocation_frame)
 		self.draw_label(item_info['oglocation'], side = 'right', master = oglocation_frame)
 		oglocation_frame.pack(fill = 'x')
 
@@ -916,7 +932,7 @@ class ItemEdit:
 
 			rbin_location_frame = tk.Frame()
 			self.draw_label(self.gui.lang['itemedit_rbin_location'], font = self.bold_font, side = 'left', master = rbin_location_frame)
-			self.draw_label('*', side = 'left', master = rbin_location_frame)
+			self.draw_label('**', side = 'left', master = rbin_location_frame)
 			self.draw_label(self.gui.rbhandler.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
 			rbin_location_frame.pack(fill = 'x')
 
@@ -937,8 +953,9 @@ class ItemEdit:
 			self.draw_label(self.gui.rbhandler.get_md_version(item_info['version']), side = 'right', master = version_frame)
 			version_frame.pack(fill = 'x')
 
-			self.draw_label(self.gui.lang['itemedit_location_asterisk'])
-
+		self.draw_label(self.gui.lang['itemedit_location_asterisk'])
+		if self.show_advanced:
+			self.draw_label(self.gui.lang['itemedit_location_asterisk_2'])
 			ttk.Button(text = self.gui.lang['itemedit_reduced'], command = lambda e = item: self.set_advanced(e, False)).pack()
 		else: ttk.Button(text = self.gui.lang['itemedit_advanced'], command = lambda e = item: self.set_advanced(e)).pack()
 
@@ -953,7 +970,7 @@ class ItemEdit:
 class NewItem:
 	def __init__(self, gui):
 		self.gui = gui
-		self.ntfs_blacklist = '\\/:*?"<>|'
+		self.ntfs_blacklist = '/:*?"<>|'
 		self.supported_versions = (1, 2)
 
 		self.return_mode = False
@@ -1014,20 +1031,34 @@ class NewItem:
 
 		self.end()
 
-	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate, random_str = None, edit_mode = False):
+	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate, random_str = None, edit_mode = False, hacker_mode = False):
 		if return_mode:
 			for i in range(1): # allows using break to skip code
+				if name == '':
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["itemedit_ogname"]}: {self.gui.lang["msgbox_blank"]}')
+					break
+				if not self.validate_text(name, self.ntfs_blacklist, '\\'):
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_name"]}\n\\ / : * ? " < > |')
+					break
+
+				if location == '':
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["oglocation"]}: {self.gui.lang["msgbox_blank"]}')
+					break
+				if not self.validate_text(location, self.ntfs_blacklist):
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path"]}\n/ : * ? " < > |')
+					break
+
 				try: size_int = int(size)
 				except ValueError:
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_size_int_error'])
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['new_item_size_int_error'])
 					break
 
 				try: version_int = int(version)
 				except ValueError:
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['new_item_error_unsupported_version'])
 					break
 				if version_int not in self.supported_versions:
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unsupported_version_friendly'])
+					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['new_item_error_unsupported_version'])
 					break
 				elif version_int == 2 and self.gui.rbhandler.get_os_version() <= (6, 3):
 					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
@@ -1043,6 +1074,7 @@ class NewItem:
 			self.deldate_TEMP = deldate
 			self.random_str_TEMP = random_str
 			self.edit_mode_TEMP = edit_mode
+			self.hacker_mode_TEMP = hacker_mode
 
 			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format)
 
@@ -1101,10 +1133,12 @@ class NewItem:
 
 	def datetime_editor(self): self.gui.n_a()
 
-	def validate_text(self, text, blacklist):
+	def validate_text(self, text, blacklist, extra_blacklist = ''):
 		for char in text:
-			if char in blacklist: return False
+			if char in blacklist + extra_blacklist: return False
 			else: return True
+
+		return True
 
 	def discard(self, delete_window = False, edit_mode = False):
 		if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard'] if edit_mode else self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no'):
@@ -1116,11 +1150,103 @@ class NewItem:
 		self.gui.window.protocol('WM_DELETE_WINDOW', self.gui.quit)
 		self.gui.refresh(True)
 
+# most code copied from DTMenu class
+class Updater_GUI:
+	def __init__(self, gui):
+		self.gui = gui
+
+		self.auto = False
+		self.after_ms = 100
+
+	def init_window(self, auto = False):
+		if not self.gui.updater_win_open:
+			self.gui.updater_win_open = True
+
+			if auto: self.auto = True
+
+			self.updater_win = tk.Toplevel(self.gui.window)
+			self.updater_win.geometry('300x120')
+			self.updater_win.resizable(False, False)
+			self.updater_win.protocol('WM_DELETE_WINDOW', self.quit)
+			self.updater_win.title(self.gui.lang['updater_title'])
+			try: self.updater_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
+			except tk.TclError:
+				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+				print(err_text)
+				tk.messagebox.showerror('Hmmm?', err_text)
+				sys.exit()
+
+			if self.auto: self.updater_win.withdraw()
+			self.updater_win.focus()
+			self.updater_win.grab_set()
+			self.main()
+
+	def quit(self):
+		self.updater_win.grab_release()
+		self.updater_win.destroy()
+		self.auto = False
+		self.gui.updater_win_open = False
+
+	def main(self):
+		self.update_thread = ThreadWithResult(target = self.gui.updater.check_updates, args = (self.gui.check_prerelease_version.get(),))
+
+		self.draw_check()
+		self.updater_win.after(1, self.start_thread)
+		self.updater_win.mainloop()
+
+	def start_thread(self):
+		self.update_thread.start()
+		while self.update_thread.is_alive():
+			self.updater_win.update_idletasks()
+			self.progressbar['value'] = self.gui.updater.progress
+		self.update_thread.join()
+		update_info = self.update_thread.result
+
+		if self.auto: self.quit()
+		else:
+			if update_info['error']:
+				if not self.auto:
+					if update_info['exceeded']: self.draw_msg(self.gui.lang['updater_exceeded'])
+					elif update_info['nowifi']: self.draw_msg(self.gui.lang['updater_offline'])
+					else: self.draw_msg(self.gui.lang['msgbox_updater_unknown_error'])
+			elif update_info['newupdate']: self.draw_download_msg(update_info['title'], update_info['tag'], update_info['prerelease'])
+			else:
+				if not self.auto: self.draw_msg(self.gui.lang['updater_latest'])
+
+	def draw_check(self):
+		for w in self.updater_win.winfo_children(): w.destroy()
+
+		self.gui.draw_label(self.gui.lang['updater_checking'], master = self.updater_win)
+		self.progressbar = ttk.Progressbar(self.updater_win, orient = 'horizontal', length = 100, mode = 'determinate')
+		self.progressbar.pack()
+		self.gui.draw_label(self.gui.lang['updater_donotclose'], font = self.gui.bold_font, side = 'bottom', master = self.updater_win)
+
+	def draw_msg(self, msg):
+		for w in self.updater_win.winfo_children(): w.destroy()
+		self.gui.draw_label(msg, master = self.updater_win)
+		ttk.Button(self.updater_win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
+
+	def draw_download_msg(self, title, tag, prever):
+		for w in self.updater_win.winfo_children(): w.destroy()
+		self.gui.draw_label(self.gui.lang['updater_newupdate'], master = self.updater_win)
+		self.gui.draw_label(f'{self.gui.lang["updater_currver"]} {self.gui.version}{self.gui.lang["updater_prerelease"] if prerelease else ""}', master = self.updater_win)
+		self.gui.draw_label(f'{self.gui.lang["updater_newver"]} {title}{self.gui.lang["updater_prerelease"] if prever else ""}', master = self.updater_win)
+		ttk.Button(self.updater_win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
+		ttk.Button(self.updater_win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
+		
+		if self.auto: self.updater_win.deiconify()
+
+	def open_download(self, tag):
+		webbrowser.open_new_tab(f'https://github.com/{username}/{repo_name}/releases/tag/{tag}')
+		self.quit()
+
 # 99% of code copied from Sneky
 class Updater:
 	def __init__(self):
 		self.username, self.reponame = username, repo_name
 		self.request_limit = 5
+
+		self.progress = 0
 
 	def check_internet(self):
 		try:
@@ -1129,6 +1255,8 @@ class Updater:
 		except Exception: return False
 
 	def check_updates(self, prerelease):
+		self.progress = 0
+
 		if not self.check_internet():
 			return {
 			'newupdate': False,
@@ -1148,6 +1276,9 @@ class Updater:
 					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
 			for info in response.json(): versions.append(info['tag_name'])
+
+			# UPDATE POINT 1
+			self.progress += 1/3*100
 
 			if internal_version not in versions:
 				try:
@@ -1178,7 +1309,10 @@ class Updater:
 					}
 				else: return {'newupdate': False, 'error': False}
 			except Exception: pass
+
 			currvertime = response.json()['published_at']
+			self.progress += 1/3*100
+
 			if not prerelease:
 				if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
@@ -1256,17 +1390,17 @@ class Updater:
 
 # https://stackoverflow.com/a/22325767
 class OSVERSIONINFOEXW(ctypes.Structure):
-    _fields_ = [('dwOSVersionInfoSize', ctypes.c_ulong),
-                ('dwMajorVersion', ctypes.c_ulong),
-                ('dwMinorVersion', ctypes.c_ulong),
-                ('dwBuildNumber', ctypes.c_ulong),
-                ('dwPlatformId', ctypes.c_ulong),
-                ('szCSDVersion', ctypes.c_wchar*128),
-                ('wServicePackMajor', ctypes.c_ushort),
-                ('wServicePackMinor', ctypes.c_ushort),
-                ('wSuiteMask', ctypes.c_ushort),
-                ('wProductType', ctypes.c_byte),
-                ('wReserved', ctypes.c_byte)]
+	_fields_ = [('dwOSVersionInfoSize', ctypes.c_ulong),
+				('dwMajorVersion', ctypes.c_ulong),
+				('dwMinorVersion', ctypes.c_ulong),
+				('dwBuildNumber', ctypes.c_ulong),
+				('dwPlatformId', ctypes.c_ulong),
+				('szCSDVersion', ctypes.c_wchar*128),
+				('wServicePackMajor', ctypes.c_ushort),
+				('wServicePackMinor', ctypes.c_ushort),
+				('wSuiteMask', ctypes.c_ushort),
+				('wProductType', ctypes.c_byte),
+				('wReserved', ctypes.c_byte)]
 
 # https://stackoverflow.com/a/16198198
 class VerticalScrolledFrame(tk.Frame):
@@ -1296,3 +1430,9 @@ class VerticalScrolledFrame(tk.Frame):
 			if interior.winfo_reqwidth() != canvas.winfo_width():
 				canvas.itemconfigure(interior_id, width=canvas.winfo_width())
 		canvas.bind('<Configure>', _configure_canvas)
+
+# https://stackoverflow.com/a/65447493
+class ThreadWithResult(threading.Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
+        def function(): self.result = target(*args, **kwargs)
+        super().__init__(group=group, target=function, name=name, daemon=daemon)
