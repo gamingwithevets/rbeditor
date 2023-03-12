@@ -5,6 +5,11 @@ if __name__ == '__main__':
 
 lang = {
 	'en_US': {
+		'info': '''\
+English - original language of RBEditor
+(c) 2022-2023 GamingWithEvets Inc.\
+''',
+
 		'title': 'RECYCLE BIN EDITOR - RBEditor',
 		'title_dtformat': 'Date and time formatting',
 		'dtformat': 'Date and time format',
@@ -49,29 +54,27 @@ Source: https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-
 If you have used a Linux distribution you should be familiar with this process.\
 ''',
 
-		'about_running_on': 'Running on ',
-		'about_running_on_right': False,
+		'about_running_on': 'Running on {}',
 		'about_project_page': 'Project page: ',
 		'about_beta_build': '\nWARNING: This is a pre-release version, therefore it may have bugs and/or glitches.\n',
-		'about_licensed': 'Licensed under the ',
-		'about_licensed2': ' license',
-		'about_licensed_right': True,
+		'about_licensed': 'Licensed under the {} license',
 
 		'bytes': 'bytes',
 
 		'menubar_rbin': 'RBEditor',
 		'menubar_rbin_reload': 'Reload Recycle Bin',
+		'menubar_rbin_explorer_bin': 'Open Recycle Bin in File Explorer',
 		'menubar_rbin_exit': 'Exit',
 		'menubar_settings': 'Settings',
 		'menubar_settings_dtformat': 'Date and time formatting...',
 		'menubar_settings_language': 'Language',
 		'menubar_settings_language_system': 'System Language',
+		'menubar_settings_language_info': 'Info for current language',
 		'menubar_settings_updates': 'Updates',
 		'menubar_settings_updates_auto': 'Check for updates on startup',
 		'menubar_settings_updates_prerelease': 'Check for pre-release versions',
 		'menubar_help_update': 'Check for updates',
-		'menubar_help_about': 'About ',
-		'menubar_help_about_right': False,
+		'menubar_help_about': 'About {}',
 
 		'msgbox_error': 'Error',
 		'msgbox_warning': 'Warning',
@@ -82,15 +85,14 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'msgbox_discard_item': 'Are you sure you want to discard this item?',
 		'msgbox_overwrite1': 'The file ',
 		'msgbox_overwrite2': ' already exists in its original location. Do you want to overwrite it?',
-		'msgbox_error_incorrect_fnamelen': ': Incorrect file name length',
 		'msgbox_error_unsupported_version': ': Unknown or unsupported metadata file version',
 		'msgbox_error_invalid_metadata': ': Invalid metadata file',
-		'msgbox_unicode_error': 'This text contains invalid Unicode characters.',
 		'msgbox_rbin_name_change': 'Do you want to update the Recycle Bin file name\'s extension with the new one you set?\nIf you leave it as-is, you might see "issues" when opening it.',
 		'msgbox_n_a': 'Not implemented',
 		'msgbox_n_a_desc': 'This feature is not implemented into this version of ',
 		'msgbox_n_a_desc2': '. Sorry!',
-		'msgbox_setting_change': 'The program will now restart.\nAny unsaved changes will be lost.',
+		'msgbox_reload': 'The program will now restart.\nAny unsaved changes will be lost.',
+		'msgbox_reload_confirm': 'Are you sure you want to reload the Recycle Bin?',
 		'msgbox_not_in_rb': 'This item is no longer in the Recycle Bin.\nIt will now be removed from this list.',
 		'msgbox_folder_warn': 'When opening a folder in the Recycle Bin, you cannot open any subfolders until the folder is restored.\n\nDo you want to continue?',
 		'msgbox_lnk_warn': '''\
@@ -116,8 +118,7 @@ Do you want to continue?\
 		'type': 'Type',
 		'size': 'Size',
 		'deldate': 'Deletion time',
-		'rbin_in': 'Recycle Bin in ',
-		'rbin_in_right': False,
+		'rbin_in': 'Recycle Bin in {}',
 		'discard': 'Discard',
 		'preview': 'Preview',
 		'help': 'Help',
@@ -131,8 +132,8 @@ Do you want to continue?\
 		'ftype_desc_ini': 'Configuration settings',
 		'ftype_desc_ps1': 'Windows PowerShell Script',
 		'ftype_desc_ico': 'Icon',
-		'ftype_desc_file_right': True,
 		'ftype_desc_file': 'File',
+		'ftype_desc_file_space': '{} File',
 
 		'main_loading': 'Loading Recycle Bin, please wait...',
 		'main_warning': 'WARNING:',
@@ -153,6 +154,7 @@ Do you want to continue?\
 		'itemedit_advanced': 'Advanced info',
 		'itemedit_reduced': 'Reduced info',
 		'itemedit_ogname': 'Original name',
+		'itemedit_ogname_unterminated': '(unterminated string)',
 		'itemedit_real_size': 'Real size',
 		'itemedit_size_disk': 'Size in Recycle Bin',
 		'itemedit_metadata_size': 'Metadata file size',
@@ -161,40 +163,46 @@ Do you want to continue?\
 		'itemedit_rbin_location': 'Location',
 		'itemedit_version': 'Metadata file version',
 		'itemedit_version_text': 'Version ',
-		'itemedit_version_1': '(Windows Vista, 7, 8, 8.1)',
-		'itemedit_version_2': '(Windows 10, 11)',
-		'itemedit_version_text_unknown': '(Unknown)',
 		'itemedit_location_asterisk': '* Relative paths start from the Desktop',
 		'itemedit_location_asterisk_2': '** You cannot access this folder\'s real contents with the File Explorer',
 
 		'new_item_edit': 'Edit existing item',
+		'new_item_path': 'Original file path',
 		'new_item_folder': 'Folder?',
 		'new_item_bytes_note': '(in bytes)',
 		'new_item_ext': 'Extension',
 		'new_item_name': 'New Recycle Bin item',
-		'new_item_name': 'New Recycle Bin item',
 		'new_item_version_warning': 'This metadata file version cannot be read by this version of Windows. Continue anyway?',
 		'new_item_size_int_error': 'Size must be an integer!',
 		'new_item_error_unsupported_version': 'Invalid metadata file version!',
-		'new_item_invalid_name': 'File names must not have the following characters:',
-		'new_item_invalid_path': 'File paths must not have the following characters:',
-		'new_item_hacker_mode': '(to bypass this error, enable hacker mode!)',
+		'new_item_invalid_path': 'File path must not have the following characters:',
+		'new_item_invalid_path_2': 'File path must include directories!',
+		'new_item_invalid_path_3': 'Invalid file path!',
+
+		'new_item_hacker_mode': 'Hacker mode',
+		'new_item_hacker_mode_note': '(to bypass this error, enable hacker mode!)',
+		'new_item_hacker_mode_enable': 'Enable hacker mode',
+		'new_item_hacker_mode_no_terminator': 'Unterminated file path (metadata version 2 only)',
 
 		'updater_title': 'Updater',
 		'updater_checking': 'Checking for updates...',
 		'updater_donotclose': 'DO NOT close the program\nwhile checking for updates',
 		'updater_exceeded': 'GitHub API rate limit exceeded! Please try again later.',
-		'updater_offline': 'Unable to connect to the internet. Please try again when you have a stable internet connection.',
+		'updater_offline': 'Unable to connect to the internet. Please try again\nwhen you have a stable internet connection.',
 		'updater_unknown_error': 'Unable to check for updates! Please try again later.',
 		'updater_newupdate': 'An update is available!',
-		'updater_currver': 'Current version:',
-		'updater_newver': 'New version:',
+		'updater_currver': 'Current version: ',
+		'updater_newver': 'New version: ',
 		'updater_prerelease': ' (pre-release)',
-		'updater_prompt': 'Do you want to go to the download page?',
 		'updater_latest': 'You are already using the latest version.',
 		'updater_download': 'Visit download page',
 	},
 	'vi_VN': {
+		'info': '''\
+Tiếng Việt - ngôn ngữ thứ hai của RBEditor
+(c) 2022-2023 GamingWithEvets Inc.\
+''',
+
 		'title': 'PHẦN MỀM CHỈNH SỬA THÙNG RÁC - RBEditor',
 		'title_dtformat': 'Định dạng ngày giờ',
 		'dtformat': 'Định dạng ngày giờ',
@@ -240,28 +248,27 @@ Nguồn: https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime
 Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc với quy trình này.\
 ''',
 
-		'about_running_on': 'Đang chạy trên ',
-		'about_running_on_right': False,
+		'about_running_on': 'Đang chạy trên {}',
 		'about_project_page': 'Trang dự án: ',
 		'about_beta_build': '\nCẢNH BÁO: Đây là bản phát hành trước, do đó nó có thể có lỗi và/hoặc trục trặc.\n',
-		'about_licensed': 'Được cấp phép theo giấy phép ',
-		'about_licensed_right': False,
+		'about_licensed': 'Được cấp phép theo giấy phép {}',
 
 		'bytes': 'byte',
 
 		'menubar_rbin': 'RBEditor',
 		'menubar_rbin_reload': 'Tải lại Thùng rác',
+		'menubar_rbin_explorer_bin': 'Mở Thùng rác trong File Explorer',
 		'menubar_rbin_exit': 'Thoát',
 		'menubar_settings': 'Cài đặt',
 		'menubar_settings_dtformat': 'Định dạng ngày giờ...',
 		'menubar_settings_language': 'Ngôn ngữ',
 		'menubar_settings_language_system': 'Ngôn ngữ hệ thống',
+		'menubar_settings_language_info': 'Thông tin về ngôn ngữ hiện tại',
 		'menubar_settings_updates': 'Cập nhật',
 		'menubar_settings_updates_auto': 'Kiểm tra cập nhật khi khởi động',
 		'menubar_settings_updates_prerelease': 'Kiểm tra phiên bản phát hành trước',
 		'menubar_help_update': 'Kiểm tra cập nhật',
-		'menubar_help_about': 'Về ',
-		'menubar_help_about_right': False,
+		'menubar_help_about': 'Về {}',
 
 		'msgbox_error': 'Lỗi',
 		'msgbox_warning': 'Cảnh báo',
@@ -272,15 +279,14 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'msgbox_discard_item': 'Bạn có chắc chắn muốn hủy khoản mục này không?',
 		'msgbox_overwrite1': 'Tệp ',
 		'msgbox_overwrite2': ' tồn tại ở vị trí ban đầu. Bạn có muốn thay thế tệp ở nơi nhận với tệp trong Thùng rác không?',
-		'msgbox_error_incorrect_fnamelen': ': Độ dài tên tệp không chính xác',
 		'msgbox_error_invalid_metadata': ': Tệp siêu dữ liệu không hợp lệ',
 		'msgbox_error_unsupported_version': ': Phiên bản tệp siêu dữ liệu không xác định hoặc không được hỗ trợ',
-		'msgbox_unicode_error': 'Chuỗi kí tự này chứa kí tự Unicode không hợp lệ.',
 		'msgbox_rbin_name_change': 'Bạn có muốn cập nhật phần mở rộng của tên tệp Thùng rác bằng phần mở rộng mới mà bạn đã đặt không?\nNếu bạn để nó nguyên trạng, bạn có thể thấy "sự cố" khi mở nó.',
 		'msgbox_n_a': 'Chưa được triển khai',
 		'msgbox_n_a_desc': 'Tính năng này không được triển khai trong phiên bản này của ',
 		'msgbox_n_a_desc2': '. Xin lỗi!',
-		'msgbox_setting_change': 'Phần mềm bây giờ sẽ khởi động lại.\nMọi thay đổi chưa được lưu sẽ bị mất.',
+		'msgbox_reload': 'Phần mềm bây giờ sẽ khởi động lại.\nMọi thay đổi chưa được lưu sẽ bị mất.',
+		'msgbox_reload_confirm': 'Bạn có chắc chắn muốn tải lại Thùng rác không?',
 		'msgbox_not_in_rb': 'Mục này không còn trong Thùng rác.\nMục này sẽ bị xóa khỏi danh sách này.',
 		'msgbox_folder_warn': 'Khi mở một thư mục trong Thùng rác, bạn không thể mở bất kỳ thư mục con nào cho đến khi thư mục đó được khôi phục.\n\nBạn có muốn tiếp tục không?',
 		'msgbox_lnk_warn': '''\
@@ -306,8 +312,7 @@ Bạn có muốn tiếp tục không?\
 		'type': 'Loại',
 		'size': 'Kích cỡ',
 		'deldate': 'Thời gian xóa',
-		'rbin_in': 'Thùng rác ở ',
-		'rbin_in_right': False,
+		'rbin_in': 'Thùng rác ở {}',
 		'discard': 'Huỷ bỏ',
 		'preview': 'Xem trước',
 		'help': 'Trợ giúp',
@@ -321,8 +326,8 @@ Bạn có muốn tiếp tục không?\
 		'ftype_desc_ini': 'Cài đặt cấu hình',
 		'ftype_desc_ps1': 'Tập lệnh Windows PowerShell',
 		'ftype_desc_ico': 'Biếu tượng',
-		'ftype_desc_file_right': False,
 		'ftype_desc_file': 'Tệp',
+		'ftype_desc_file_space': 'Tệp {}',
 
 		'main_loading': 'Đang tải Thùng rác, vui lòng đợi...',
 		'main_warning': 'CẢNH BÁO:',
@@ -343,6 +348,7 @@ Bạn có muốn tiếp tục không?\
 		'itemedit_advanced': 'Thông tin chuyên sâu',
 		'itemedit_reduced': 'Thông tin rút ngắn',
 		'itemedit_ogname': 'Tên gốc',
+		'itemedit_ogname_unterminated': '(không có kí tự kết thúc)',
 		'itemedit_real_size': 'Kích cỡ chính xác',
 		'itemedit_size_disk': 'Kích cỡ trong Thùng rác',
 		'itemedit_metadata_size': 'Kích cỡ tệp siêu dữ liệu',
@@ -351,13 +357,11 @@ Bạn có muốn tiếp tục không?\
 		'itemedit_rbin_location': 'Vị trí',
 		'itemedit_version': 'Phiên bản tệp siêu dữ liệu',
 		'itemedit_version_text': 'Phiên bản ',
-		'itemedit_version_1': '(Windows Vista, 7, 8, 8.1)',
-		'itemedit_version_2': '(Windows 10, 11)',
-		'itemedit_version_text_unknown': '(Không xác định)',
 		'itemedit_location_asterisk': '* Địa chỉ tương đối bắt đầu từ Bàn làm việc',
 		'itemedit_location_asterisk_2': '** Bạn không thể truy cập nội dung thực của thư mục này bằng File Explorer',
 
 		'new_item_edit': 'Chỉnh sửa khoản mục',
+		'new_item_path': 'Địa chỉ tệp gốc',
 		'new_item_folder': 'Thư mục?',
 		'new_item_bytes_note': '(tính bằng byte)',
 		'new_item_ext': 'Phần mở rộng',
@@ -365,25 +369,35 @@ Bạn có muốn tiếp tục không?\
 		'new_item_version_warning': 'Phiên bản tệp siêu dữ liệu này không thể đọc được bằng phiên bản Windows này. Bạn có vẫn muốn tiếp tục không?',
 		'new_item_size_int_error': 'Kích thước phải là một số nguyên!',
 		'new_item_error_unsupported_version': 'Phiên bản tệp siêu dữ liệu không hợp lệ!',
-		'new_item_invalid_name': 'Tên tập tin không được có các ký tự sau:',
 		'new_item_invalid_path': 'Đường dẫn tập tin không được có các ký tự sau:',
-		'new_item_hacker_mode': '(để tránh lỗi này, hãy bật chế độ hacker!)',
+		'new_item_invalid_path_2': 'Đường dẫn tệp phải bao gồm thư mục!',
+		'new_item_invalid_path_3': 'Đường dẫn tệp không hợp lệ!',
+
+		'new_item_hacker_mode': 'Chế độ hacker',
+		'new_item_hacker_mode_note': '(để tránh lỗi này, hãy bật chế độ hacker!)',
+		'new_item_hacker_mode_enable': 'Bật chế độ hacker',
+		'new_item_hacker_mode_no_terminator': 'Đường dẫn tệp không có kí tự kết thúc (chỉ cho tệp siêu dữ liệu phiên bản 2)',
 
 		'updater_title': 'Chương trình cập nhật',
 		'updater_checking': 'Đang kiểm tra cập nhật...',
 		'updater_donotclose': 'KHÔNG đóng chương trình\ntrong khi kiểm tra cập nhật',
-		'updater_exceeded': 'Đã vượt quá giới hạn tốc độ API GitHub! Vui lòng thử lại sau.',
-		'updater_offline': 'Không thể kết nối internet. Vui lòng thử lại khi bạn có đường truyền internet ổn định.',
+		'updater_exceeded': 'Đã vượt quá giới hạn tốc độ API GitHub!\nVui lòng thử lại sau.',
+		'updater_offline': 'Không thể kết nối internet. Vui lòng thử lại\nkhi bạn có đường truyền internet ổn định.',
 		'updater_unknown_error': 'Không thể kiểm tra cập nhật! Vui lòng thử lại sau.',
 		'updater_newupdate': 'Đã có bản cập nhật!',
-		'updater_currver': 'Phiên bản hiện tại:',
-		'updater_newver': 'Phiên bản mới:',
+		'updater_currver': 'Phiên bản hiện tại: ',
+		'updater_newver': 'Phiên bản mới: ',
 		'updater_prerelease': ' (bản phát hành trước)',
 		'updater_prompt': 'Bạn có muốn truy cập trang tải xuống không?',
 		'updater_latest': 'Bạn đang sử dụng phiên bản mới nhất.',
 		'updater_download': 'Truy cập trang tải xuống',
 	},
 	'ja_JP': {
+		'info': '''\
+日本語 - RBEditor の第３言語
+(c) 2023 GamingWithEvets Inc.\
+''',
+
 		'title': 'ごみ箱エディタ - RBEditor',
 		'title_dtformat': '日付と時刻の形式',
 		'dtformat': '日付と時刻の形式',
@@ -393,27 +407,27 @@ Bạn có muốn tiếp tục không?\
 
 %a - ロケールの曜日名を短縮形で表示します。
 %A - ロケールの曜日名を表示します。
-%w - 曜日を10進表記した文字列を表示します。0 が日曜日で、6 が土曜日を表します。
+%w - 曜日を 10 進表記した文字列を表示します。０が日曜日で、６が土曜日を表します。
 
-%d - 0埋めした10進数で表記した月中の日にち。
+%d - ０埋めした 10 進数で表記した月中の日にち。
 %b - ロケールの月名を短縮形で表示します。
 %B - ロケールの月名を表示します。
-%m - 0埋めした10進数で表記した月。
-%y - 0埋めした10進数で表記した世紀無しの年。
-%Y - 西暦（4桁）の 10 進表記を表します。
+%m - ０埋めした 10 進数で表記した月。
+%y - ０埋めした 10 進数で表記した世紀無しの年。
+%Y - 西暦（４桁）の 10 進表記を表します。
 
-%H - 0埋めした10進数で表記した時（24時間表記）。
-%I - 0埋めした10進数で表記した時（12時間表記）。
+%H - ０埋めした 10 進数で表記した時（24 時間表記）。
+%I - ０埋めした 10 進数で表記した時（12 時間表記）。
 %p - ロケールの AM もしくは PM と等価な文字列になります。
-%M - 0埋めした10進数で表記した分。
-%S - 0埋めした10進数で表記した秒。
-%f - 10進数で表記したマイクロ秒 (左側から0埋めされます)。
+%M - ０埋めした10進数で表記した分。
+%S - ０埋めした10進数で表記した秒。
+%f - 10進数で表記したマイクロ秒（左側から０埋めされます）。
 %z - UTCオフセットを ±HHMM[SS[.ffffff]] の形式で表示します。
 %Z - タイムゾーンの名前を表示します。
 
-%j - 0埋めした10進数で表記した年中の日にち。
-%U - 0埋めした10進数で表記した年中の週番号 (週の始まりは日曜日とする)。新年の最初の日曜日に先立つ日は 0週に属するとします。
-%W - 0埋めした10進数で表記した年中の週番号 (週の始まりは月曜日とする)。新年の最初の月曜日に先立つ日は 0週に属するとします。
+%j - ０埋めした10進数で表記した年中の日にち。
+%U - ０埋めした10進数で表記した年中の週番号（週の始まりは日曜日とする）。新年の最初の日曜日に先立つ日は０週に属するとします。
+%W - ０埋めした10進数で表記した年中の週番号（週の始まりは月曜日とする）。新年の最初の月曜日に先立つ日は０週に属するとします。
 
 %c - ロケールの日時を適切な形式で表します。
 %x - ロケールの日付を適切な形式で表します。
@@ -428,29 +442,27 @@ Bạn có muốn tiếp tục không?\
 Linux ディストリビューションを使用したことがある場合は、このプロセスに精通している必要があります。\
 ''',
 
-		'about_running_on': 'での実行',
-		'about_running_on_right': True,
+		'about_running_on': '{} での実行',
 		'about_project_page': 'プロジェクトページ：',
 		'about_beta_build': '\n警告：これはプレリリース バージョンであるため、バグやグリッチがある可能性があります。\n',
-		'about_licensed': '',
-		'about_licensed2': 'ライセンスの下でライセンスされています',
-		'about_licensed_right': True,
+		'about_licensed': '{} ライセンスの下でライセンスされています',
 
 		'bytes': 'バイト',
 
 		'menubar_rbin': 'RBEditor',
 		'menubar_rbin_reload': 'ごみ箱をリロードする',
+		'menubar_rbin_explorer_bin': 'ファイル エクスプローラでごみ箱を開く',
 		'menubar_rbin_exit': '出口',
 		'menubar_settings': '設定',
 		'menubar_settings_dtformat': '日付と時刻の形式...',
 		'menubar_settings_language': '言語',
 		'menubar_settings_language_system': 'システム言語',
+		'menubar_settings_language_info': '現在の言語の情報',
 		'menubar_settings_updates': '更新',
 		'menubar_settings_updates_auto': '起動時に更新を確認する',
 		'menubar_settings_updates_prerelease': 'プレリリース バージョンを確認する',
 		'menubar_help_update': '更新を確認する',
-		'menubar_help_about': ' について',
-		'menubar_help_about_right': True,
+		'menubar_help_about': '{} について',
 
 		'msgbox_error': 'エラー',
 		'msgbox_warning': '警告',
@@ -461,16 +473,15 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_discard_item': '本当にこの項目を破棄しますか?',
 		'msgbox_overwrite1': 'ファイル',
 		'msgbox_overwrite2': 'は、元の場所に既に存在します。 上書きしますか？',
-		'msgbox_error_incorrect_fnamelen': '：ファイル名の長さが正しくありません',
 		'msgbox_error_unsupported_version': '：メタデータ ファイルのバージョンが不明またはサポートされていません',
 		'msgbox_error_invalid_metadata': '：メタデータ ファイルが無効です',
 		'msgbox_error_invalid_date': '：無効な削除日',
-		'msgbox_unicode_error': 'このテキストには無効な Unicode 文字が含まれています。',
 		'msgbox_rbin_name_change': 'ごみ箱のファイル名の拡張子を、設定した新しい拡張子に更新しますか？\nそのままにしておくと、開いたときに「問題」が発生する可能性があります。',
 		'msgbox_n_a': '未実装',
 		'msgbox_n_a_desc': 'この機能は、このバージョンの ',
 		'msgbox_n_a_desc2': ' には実装されていません。 ごめん！',
-		'msgbox_setting_change': 'プログラムが再起動します。\n保存されていない変更は失われます。',
+		'msgbox_reload': 'プログラムが再起動します。\n保存されていない変更は失われます。',
+		'msgbox_reload_confirm': 'ごみ箱を再読み込みしてもよろしいですか？',
 		'msgbox_not_in_rb': 'このアイテムはごみ箱にありません。\nこのリストから削除されます。',
 		'msgbox_folder_warn': 'ごみ箱のフォルダを開く場合、フォルダが復元されるまでサブフォルダを開くことはできません。\n\n続行しますか?',
 		'msgbox_lnk_warn': '''\
@@ -496,8 +507,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'type': '種類',
 		'size': 'サイズ',
 		'deldate': '削除時間',
-		'rbin_in': 'のごみ箱',
-		'rbin_in_right': True,
+		'rbin_in': '{} のごみ箱',
 		'discard': '破棄',
 		'preview': 'プレビュー',
 		'help': 'ヘルプ',
@@ -511,8 +521,8 @@ Linux ディストリビューションを使用したことがある場合は�
 		'ftype_desc_ini': '構成設定',
 		'ftype_desc_ps1': 'Windows PowerShell スクリプト',
 		'ftype_desc_ico': 'アイコン',
-		'ftype_desc_file_right': True,
 		'ftype_desc_file': 'ファイル',
+		'ftype_desc_file': '{} ファイル',
 
 		'main_loading': 'ごみ箱を読み込んでいます。お待ちください...',
 		'main_warning': '警告：',
@@ -533,6 +543,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'itemedit_advanced': 'アドバンス情報',
 		'itemedit_reduced': '縮小情報',
 		'itemedit_ogname': '元の名前',
+		'itemedit_ogname_unterminated': '（終了文字なし）',
 		'itemedit_real_size': 'リアルサイズ',
 		'itemedit_size_disk': 'ごみ箱のサイズ',
 		'itemedit_metadata_size': 'メタデータ ファイルのサイズ',
@@ -541,30 +552,33 @@ Linux ディストリビューションを使用したことがある場合は�
 		'itemedit_rbin_location': '場所',
 		'itemedit_version': 'メタデータ ファイルのバージョン',
 		'itemedit_version_text': 'バージョン',
-		'itemedit_version_1': '（Windows Vista、7、8、8.1）',
-		'itemedit_version_2': '（Windows 10、11）',
-		'itemedit_version_text_unknown': '（わからない）',
 		'itemedit_location_asterisk': '* デスクトップからの相対パス',
 		'itemedit_location_asterisk_2': '** ファイル エクスプローラーでこのフォルダーの実際の内容にアクセスすることはできません',
 
 		'new_item_edit': '既存の項目を編集',
+		'new_item_path': '元のファイルパス',
 		'new_item_folder': 'フォルダ？',
 		'new_item_bytes_note': '（バイト単位）',
 		'new_item_ext': '拡大',
 		'new_item_name': '新しいごみ箱項目',
 		'new_item_version_warning': 'このメタデータ ファイルのバージョンは、このバージョンの Windows では読み取ることができません。 それでも続行しますか？',
 		'new_item_size_int_error': 'サイズは整数でなければなりません！',
-		'new_item_error_unsupported_version': '無効なメタデータ ファイルのバージョンです！',
-		'new_item_invalid_name': 'ファイル名に次の文字を含めることはできません：',
+		'new_item_error_unsupported_version': '無効なメタデータファイルのバージョンです！',
 		'new_item_invalid_path': 'ファイルパスに次の文字を含めることはできません：',
-		'new_item_hacker_mode': '(このエラーを回避するには、ハッカー モードを有効にしてください！)',
+		'new_item_invalid_path_2': 'ファイルパスにはディレクトリを含める必要があります！',
+		'new_item_invalid_path_3': 'ファイルパスが無効です！',
+
+		'new_item_hacker_mode': 'ハッカーモード',
+		'new_item_hacker_mode_note': '（このエラーを回避するには、ハッカーモードを有効にしてください！）',
+		'new_item_hacker_mode_enable': 'ハッカーモードを有効にする',
+		'new_item_hacker_mode_no_terminator': '終端文字を持たないファイルパス（メタデータバージョン２のみ）',
 
 		'updater_title': 'アップデーター',
 		'updater_checking': 'アップデートの確認...',
 		'updater_donotclose': 'アップデートの確認中は\nプログラムを閉じないでください',
-		'updater_exceeded': 'GitHub API のレート制限を超えました! 後でもう一度やり直してください。',
-		'updater_offline': 'インターネットに接続できません。 インターネット接続が安定しているときにもう一度お試しください。',
-		'updater_unknown_error': 'アップデートを確認できません！ 後でもう一度やり直してください。',
+		'updater_exceeded': 'GitHub API のレート制限を超えました!\n後でもう一度やり直してください。',
+		'updater_offline': 'インターネットに接続できません。インターネット\n接続が安定しているときにもう一度お試しください。',
+		'updater_unknown_error': 'アップデートを確認できません！\n後でもう一度やり直してください。',
 		'updater_newupdate_title': '利用可能なアップデート',
 		'updater_newupdate': 'アップデートが利用可能です！',
 		'updater_currver': '現行版：',

@@ -6,7 +6,6 @@ if __name__ == '__main__':
 import os
 import platform
 import traceback
-import subprocess
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.font
@@ -24,6 +23,7 @@ except ImportError:
 	sys.exit()
 
 import re
+import glob
 import math
 import time
 import ctypes
@@ -36,6 +36,7 @@ import binascii
 import tempfile
 import threading
 import win32file
+import subprocess
 import webbrowser
 import collections
 import configparser
@@ -51,8 +52,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = 'Beta 1.4.0'
-internal_version = 'b1.4.0'
+version = '0.1.0'
+internal_version = 'v0.1.0'
 prerelease = True
 
 license = 'MIT'
@@ -89,6 +90,7 @@ class RBHandler:
 				break
 
 		self.rbdir = self.gui.rbdir = f'\\$RECYCLE.BIN\\{sid}'
+		self.rbdir_c = f'\\$Recycle.Bin\\{sid}'
 
 	def get_bin_items(self):
 		drives = self.get_drives()
@@ -97,51 +99,49 @@ class RBHandler:
 		dirlist = []
 		errno_whitelist = [13, 2]
 		for drive in drives:
-			try: dirlist.extend(os.listdir(f'{drive}:{self.rbdir}'))
+			try: dirlist.extend(glob.glob(f'{drive}:{self.rbdir}\\*'))
 			except IOError as e:
 				if e.errno not in errno_whitelist: self.gui.corrupted_rbdir_drives.append(drive)
+
+		bin_paths = {}
 		for f in dirlist:
-			if f[:2] == '$I': bin_items_list.append(f[2:])
+			if os.path.basename(f)[:2] == '$I' and os.path.exists(f'{os.path.dirname(f)}\\$R{os.path.basename(f)[2:]}'):
+				bin_items_list.append(os.path.basename(f)[2:])
+				bin_paths[os.path.basename(f)[2:]] = os.path.dirname(f)
 
 		self.gui.bin_items = {}
 		bin_items_unsorted = {}
 		for item in bin_items_list:
-			if self.get_rb_path(item, 'R') == None: continue
-
-			filedata = self.read_metadata(item)
+			filedata = self.read_metadata(f'{bin_paths[item]}\\$I{item}')
 			if filedata['skip']:
 				self.gui.enable_rbin_metadata_unsupported_version_msg = True
 				continue
 
-			try: dirtest = os.path.isdir(self.get_rb_path(item, 'R'))
+			try: dirtest = os.path.isdir(f'{bin_paths[item]}\\$R{item}')
 			except: dirtest = False
 
 			ext = os.path.splitext(filedata['fname'])[1].lower()
-			oglocation = os.path.dirname(filedata['fname'])
-			ogname = os.path.basename(filedata['fname'])
-			if ogname == '': ogname = oglocation
 
 			bin_items_unsorted[item] = {
-			'ogname': ogname,
+			'ogpath': filedata['fname'],
+			'unterminated_str': filedata['unterminated_str'],
 			'type': self.gui.lang['ftype_desc_folder'] if dirtest else self.get_ftype_desc(ext),
 			'ext': None if dirtest or not ext else ext,
-			'oglocation': oglocation,
+			'isdir': dirtest,
 			'size': filedata['fsize'],
 			'deldate': filedata['deldate'],
-			'rbin_drive': self.get_rb_path(item)[0],
+			'rbin_drive': bin_paths[item][0],
 			'version': filedata['version'],
 			}
 
-		if len(bin_items_unsorted) > 0: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: x[1]['ogname'].lower())))
+		if len(bin_items_unsorted) > 0: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: os.path.basename(x[1]['ogpath']).lower())))
 
-	def get_md_version(self, version):
-		if 'itemedit_version_'+str(version) in self.gui.lang: return f'{self.gui.lang["itemedit_version_text"]}{version} {self.gui.lang["itemedit_version_"+str(version)]}'
-		else: return f'{self.gui.lang["itemedit_version_text"]}{version} {self.gui.lang["itemedit_version_text_unknown"]}'
+	def get_md_version(self, version): return f'{self.gui.lang["itemedit_version_text"]}{version}'
 
 	def get_ftype_desc(self, ext):
 		if not ext: return self.gui.lang['ftype_desc_file']
 		# translations for these extensions are stored in the language packs themselves,
-		# therefore the file type descriptions need to be stored in the program itself.
+		# therefore the file type descriptions also need to be stored in the program itself.
 		elif ext == '.txt': return self.gui.lang['ftype_desc_txt']
 		elif ext == '.ini': return self.gui.lang['ftype_desc_ini']
 		elif ext == '.ps1': return self.gui.lang['ftype_desc_ps1']
@@ -150,25 +150,16 @@ class RBHandler:
 			try:
 				desc = winreg.QueryValue(HKCR, winreg.QueryValue(HKCR, ext))
 				if desc: return desc
-				else:
-					if self.gui.lang['ftype_desc_file_right']: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
-					else: return f'{self.gui.lang["ftype_desc_file"]} {ext[1:].upper()}'
-			except Exception:
-				if self.gui.lang['ftype_desc_file_right']: return f'{ext[1:].upper()} {self.gui.lang["ftype_desc_file"]}'
-				else: return f'{self.gui.lang["ftype_desc_file"]} {ext[1:].upper()}'
+				else: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
+			except Exception: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
 
+	# https://stackoverflow.com/a/22325767 (modified)
 	def get_os_version(self):
-		"""
-		https://stackoverflow.com/a/22325767
-
-		Get's the OS major and minor versions.  Returns a tuple of
-		(OS_MAJOR, OS_MINOR).
-		"""
 		os_version = OSVERSIONINFOEXW()
 		os_version.dwOSVersionInfoSize = ctypes.sizeof(os_version)
 		retcode = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version))
 		if retcode != 0:
-			raise Exception("Failed to get OS version")
+			raise RuntimeError('Failed to get Windows NT version')
 
 		return os_version.dwMajorVersion, os_version.dwMinorVersion
 
@@ -224,12 +215,13 @@ class RBHandler:
 				else: return f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)} ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
 		else: return f'{size_bytes} {self.gui.lang["bytes"]}'
 
-	def read_metadata(self, file_to_read):
+	def read_metadata(self, file_path):
+		file_to_read = os.path.basename(file_path)
+
 		# initialization
 		fname = fsize = deldate = version = None
+		unterminated_str = False
 		skip = False
-
-		file_path = self.get_rb_path(file_to_read)
 
 		bytes_required = 20
 
@@ -253,10 +245,11 @@ class RBHandler:
 				fname = ''
 				for i in range(fnamelen):
 					char_b = file.read(2)
-					if char_b == b'': tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'$I{file_to_read}{self.gui.lang["msgbox_error_incorrect_fnamelen"]}'); break
+					if char_b == b'': break
 					if char_b == b'\x00\x00': break
 					char = char_b.decode('utf-16le')
 					fname += char
+					if i == fnamelen - 1: unterminated_str = True
 
 			elif version == 1:
 				fsize_b = bytearray(file.read(8))
@@ -276,45 +269,39 @@ class RBHandler:
 				skip = True
 				tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'$I{file_to_read}{self.gui.lang["msgbox_error_unsupported_version"]} (v{version})')
 
-		return {'fname': fname, 'fsize': fsize, 'deldate': deldate, 'version': version, 'skip': skip}
+		return {'fname': fname, 'fsize': fsize, 'deldate': deldate, 'version': version, 'unterminated_str': unterminated_str, 'skip': skip}
 
-	def write_metadata(self, version, fname, fsize, deldate, is_folder):
+	def write_metadata(self, version, fname, fsize, deldate, is_folder, terminator = True):
 		file_data = b''
 
 		file_data += version.to_bytes(8, 'little')
 		if version == 2:
 			file_data += fsize.to_bytes(8, 'little')
 			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
-			fnamelen = len(fname) + 1
+			fnamelen = len(fname)
+			fname += '\x00'
+			if terminator: fnamelen += 1
 			file_data += fnamelen.to_bytes(4, 'little')
-			for char in fname:
-				char_b = char.encode('utf-16le')
-				file_data += char_b
-			file_data += b'\x00\x00'
+			fname_b = fname.encode('utf-16le')
+			file_data += fname_b
 		elif version == 1:
 			file_data += fsize.to_bytes(8, 'little')
 			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
 			fnamelen = len(fname)
-			for char in fname:
-				char_b = char.encode('utf-16le')
-				file_data += char_b
+			fname_b = fname.encode('utf-16le')
+			file_data += fname_b
 			for i in range(260 - fnamelen): file_data += b'\x00\x00'
 
 		return file_data
 
-	def get_rb_path(self, file, typ = 'I'):
-		drives = self.get_drives()
+	def get_rb_path(self, item, typ = 'I'):
+		drive = self.gui.bin_items[item]['rbin_drive']
 
-		fname = f'${typ}{file}'
-		for drive in drives:
-			ind_drive_rbdir = f'{drive}:{self.rbdir}'
-			f = os.listdir(ind_drive_rbdir)
-			if fname in f: return f'{ind_drive_rbdir}\\{fname}'
+		return f'{drive}:{self.rbdir_c if drive == os.getenv("SYSTEMDRIVE")[0] else self.rbdir}\\${typ}{item}'
 
-	def get_rb_path_friendly(self, file, typ = 'I'):
-		file_path = os.path.dirname(self.get_rb_path(file, typ))
-		if self.gui.lang['rbin_in_right']: return f'{file_path[:2]}{self.gui.lang["rbin_in"]} | {file_path}'
-		else: return f'{self.gui.lang["rbin_in"]}{file_path[:2]} | {file_path}'
+	def get_rb_path_friendly(self, item):
+		file_path = os.path.dirname(self.get_rb_path(item))
+		return f'{self.gui.lang["rbin_in"].format(file_path[:2])} | {file_path}'
 
 class GUI:
 	def __init__(self, window):
@@ -353,7 +340,26 @@ class GUI:
 		self.date_format = self.default_date_format
 		self.tz = datetime.now(timezone.utc).astimezone().tzinfo
 
-		self.languages = lang.lang.keys()
+		self.languages = [
+		'en_US',
+		'en_GB',
+		'ja_JP',
+		'vi_VN',
+		]
+
+		self.language_names = {
+		'en_US': 'English',
+		'ja_JP': '日本語',
+		'vi_VN': 'Tiếng Việt',
+		}
+
+		self.language_labels = {
+		'en_US': 'en-US',
+		'en_GB': 'en-GB',
+		'ja_JP': 'ja-JP',
+		'vi_VN': 'vi-VN',
+		}
+
 		self.language_tk = tk.StringVar(); self.language_tk.set('system')
 		self.language = ''
 		self.system_language_unavailable = False
@@ -363,23 +369,12 @@ class GUI:
 
 		self.enable_rbin_metadata_unsupported_version_msg = False
 
-		self.language_names = {
-		'en_US': 'English (US)',
-		'ja_JP': '日本語',
-		'vi_VN': 'Tiếng Việt',
-		}
-
-		self.language_labels = {
-		'en_US': 'en-US',
-		'ja_JP': 'ja-JP',
-		'vi_VN': 'vi-VN',
-		}
-
-		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\RBEditor'
+		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\{name}'
 		self.ini = configparser.ConfigParser()
 		self.parse_settings()
 
 		self.refreshing = True
+		self.reload_confirm_func = self.reload_confirm_default
 
 		self.rbhandler = RBHandler(self)
 		self.itemedit = ItemEdit(self)
@@ -399,13 +394,13 @@ class GUI:
 		try:
 			self.ini.read(f'{self.appdata_folder}\\settings.ini')
 			self.language_tk.set(self.ini['settings']['language'])
-			self.date_format = self.ini['settings']['date_format'].replace('%%', '%')
+			self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
 
 			if 'updater' in self.ini:
 				self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
 				self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
 
-		except Exception: print(traceback.format_exc())
+		except Exception: pass
 		
 		self.set_lang()
 
@@ -413,7 +408,7 @@ class GUI:
 		# settings are set individually to retain compatibility between versions
 		self.ini['settings'] = {}
 		self.ini['settings']['language'] = self.language_tk.get()
-		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%')
+		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%').encode('unicode-escape').decode()
 
 		self.ini['updater'] = {}
 		self.ini['updater']['auto_check_updates'] = str(self.auto_check_updates.get())
@@ -435,14 +430,19 @@ class GUI:
 			if self.system_language_unavailable:
 				self.language_tk.set('en_US')
 				self.save_settings()
-				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English (US).')
-		else: self.language = self.language_tk.get()
+				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English.')
+		else:
+			self.language = self.language_tk.get()
+			if self.language_tk.get() not in self.languages:
+				self.language_tk.set('en_US')
+				self.save_settings()
 
 		locale.setlocale(locale.LC_ALL, self.language_labels[self.language])
 
 		self.lang = lang.lang['en_US'].copy()
-		lang_new = lang.lang[self.language].copy()
-		for key in lang_new: self.lang[key] = lang_new[key]
+		if self.language in lang.lang:
+			lang_new = lang.lang[self.language].copy()
+			for key in lang_new: self.lang[key] = lang_new[key]
 
 	def change_lang(self):
 		self.set_lang()
@@ -457,6 +457,9 @@ class GUI:
 		for w in self.window.winfo_children(): w.destroy()
 		self.menubar()
 
+		self.window.protocol('WM_DELETE_WINDOW', self.quit)
+		self.reload_confirm_func = self.reload_confirm_default
+
 		if load_func:
 			if custom_func == None: self.main()
 			else: custom_func() 
@@ -466,11 +469,14 @@ class GUI:
 	def init_window(self):
 		self.window.geometry(f'{self.display_w}x{self.display_h}')
 		self.window.resizable(False, False)
-		self.window.unbind_all('<<NextWindow>>') # disable TAB focus (only temporary, will be removed when TAB key functionality is developed)
+		self.window.unbind_all('<<NextWindow>>') # disable TAB focus
+		self.window.bind('<F5>', self.reload_confirm)
+		self.window.bind('x', self.version_details)
+		self.window.option_add('*tearOff', False)
 		self.set_title()
 		try: self.window.iconbitmap(f'{self.temp_path}\\icon.ico')
 		except tk.TclError:
-			err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+			err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 			print(err_text)
 			tk.messagebox.showerror('Hmmm?', err_text)
 			sys.exit()
@@ -505,11 +511,11 @@ class GUI:
 		if master == None: master = self.window
 		self.draw_label('', side = side, master = master)
 
-	def about_menu(self): tk.messagebox.showinfo(f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', f'''\
-{name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {'' if self.lang['about_running_on_right'] else self.lang['about_running_on']}{platform.system()} x{'64' if platform.machine().endswith('64') else '86'}{self.lang['about_running_on'] if self.lang['about_running_on_right'] else ''}
+	def about_menu(self): tk.messagebox.showinfo(self.lang['menubar_help_about'].format(name), f'''\
+{name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {self.lang['about_running_on'].format(platform.system() + ' x64' if platform.machine().endswith('64') else ' x86')}
 {self.lang['about_project_page']}https://github.com/{username}/{repo_name}
 {self.lang['about_beta_build'] if prerelease else ''}
-{self.lang['about_licensed']}{license}{self.lang['about_licensed2'] if self.lang['about_licensed_right'] else ''}
+{self.lang['about_licensed'].format(license)}
 
 Copyright (c) 2022-2023 GamingWithEvets Inc.
 
@@ -532,38 +538,60 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE \
 SOFTWARE.\
 ''')
 
+	def version_details(self, event = None): tk.messagebox.showinfo(f'{name} version details', f'''\
+{name} {version}
+Internal version: {internal_version}
+
+Python version information:
+Python {platform.python_version()} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit)
+Tkinter {self.window.tk.call('info', 'patchlevel')}
+
+Operating system information:
+{platform.system()} {platform.release()}
+{'NT version: ' if os.name == 'nt' else ''}{platform.version()}
+Architecture: {platform.machine()}\
+''')
+
 	def reload(self):
-		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_setting_change'])
+		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_reload'])
 		self.itemedit.show_advanced = False
 		self.refresh(True)
+
+	def reload_confirm(self, event = None):
+		if self.reload_confirm_func(): self.reload()
+
+	def reload_confirm_default(self): return tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_reload_confirm'], icon = 'warning')
 
 	def menubar(self):
 		menubar = tk.Menu()
 
-		rbin_menu = tk.Menu(menubar, tearoff = False)
-		rbin_menu.add_command(label = self.lang['menubar_rbin_reload'], command = self.reload)
+		rbin_menu = tk.Menu(menubar)
+		rbin_menu.add_command(label = self.lang['menubar_rbin_reload'], command = self.reload_confirm, accelerator = 'F5')
+		rbin_menu.add_command(label = self.lang['menubar_rbin_explorer_bin'], command = lambda: subprocess.Popen('explorer shell:recyclebinfolder', shell = True))
 		rbin_menu.add_command(label = self.lang['menubar_rbin_exit'], command = self.quit)
 		menubar.add_cascade(label = self.lang['menubar_rbin'], menu = rbin_menu)
 
-		settings_menu = tk.Menu(menubar, tearoff = False)
+		settings_menu = tk.Menu(menubar)
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.dt_menu.init_window)
 
-		self.lang_menu = tk.Menu(settings_menu, tearoff = False)
+		self.lang_menu = tk.Menu(settings_menu)
+		self.lang_menu.add_command(label = self.lang['menubar_settings_language_info'], command = lambda: tk.messagebox.showinfo(self.lang['menubar_help_about'].format(self.language_names[self.language]), self.lang['info']))
+		self.lang_menu.add_separator()
 		self.lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang, state = 'disabled' if self.system_language_unavailable else 'normal')
 		for i in self.language_names: self.lang_menu.add_radiobutton(label = self.language_names[i], variable = self.language_tk, value = i, command = self.change_lang)
 		self.ena_dis_lang()
 		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
-		updater_settings_menu = tk.Menu(settings_menu, tearoff = False)
+		updater_settings_menu = tk.Menu(settings_menu)
 		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_auto'], variable = self.auto_check_updates, command = self.save_settings)
 		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_prerelease'], variable = self.check_prerelease_version, command = self.save_settings)
 		settings_menu.add_cascade(label = self.lang['menubar_settings_updates'], menu = updater_settings_menu)
 
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
-		help_menu = tk.Menu(menubar, tearoff = False)
+		help_menu = tk.Menu(menubar)
 		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.updater_gui.init_window, state = 'normal' if self.updates else 'disabled')
-		help_menu.add_command(label = f'{"" if self.lang["menubar_help_about_right"] else self.lang["menubar_help_about"]}{name}{self.lang["menubar_help_about"] if self.lang["menubar_help_about_right"] else ""}', command = self.about_menu)
+		help_menu.add_command(label = self.lang['menubar_help_about'].format(name), command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
 		self.window.config(menu = menubar)
@@ -576,28 +604,6 @@ SOFTWARE.\
 
 		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
 		else: self.lang_menu.entryconfig(self.language_names[self.language], state = 'disabled')
-
-	def check_updates(self, auto = False):
-		self.set_title(self.lang['main_updater'])
-		update_info = self.updater.check_updates(self.check_prerelease_version.get())
-		self.set_title()
-
-		if update_info['error']:
-			if not auto:
-				if update_info['exceeded']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_exceeded'])
-				elif update_info['nowifi']: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_offline'])
-				else: tk.messagebox.showerror(self.lang['msgbox_error'], self.lang['msgbox_updater_unknown_error'])
-		elif update_info['newupdate']:
-			if tk.messagebox.askyesno(self.lang['msgbox_updater_newupdate_title'], f'''\
-{self.lang['msgbox_updater_newupdate']}
-
-{self.lang['msgbox_updater_currver']} {self.version}{self.lang['msgbox_updater_prerelease'] if prerelease else ''}
-{self.lang['msgbox_updater_newver']} {update_info['title']}{self.lang['msgbox_updater_prerelease'] if prerelease else ''}
-
-{self.lang['msgbox_updater_prompt']}\
-''', icon = 'info'): webbrowser.open_new_tab(f'https://github.com/gamingwithevets/rbeditor/releases/tag/{update_info["tag"]}')
-		else:
-			if not auto: tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_updater_latest'])
 
 	def main(self):
 		try: self.draw_label(self.lang['title'], font = self.bold_font)
@@ -637,7 +643,7 @@ SOFTWARE.\
 				ttk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
 				ttk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
 				ttk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
-				self.draw_label(self.bin_items[item]['ogname'] if self.bin_items[item]['type'] != self.lang['ftype_desc_folder'] else f'{self.bin_items[item]["ogname"]}   {self.lang["main_folder"]}', side = 'left', anchor = 'midleft', master = item_frame)
+				self.draw_label(f'{os.path.basename(self.bin_items[item]["ogpath"])}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else os.path.basename(self.bin_items[item]["ogpath"]), side = 'left', anchor = 'midleft', master = item_frame)
 				item_frame.pack(fill = 'both')
 
 		else:
@@ -656,7 +662,9 @@ SOFTWARE.\
 	def open_item(self, item):
 		def start(path, folder = False):
 			if folder: subprocess.Popen(f'explorer "{path}"', shell = True)
-			else: os.startfile(path)
+			else:
+				try: os.startfile(path)
+				except OSError as e: tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in open operation:\n{e.strerror.replace("%1", e.filename)} ({e.errno})')
 
 		item_info = self.bin_items[item]
 		ext = item_info['ext']
@@ -673,11 +681,11 @@ SOFTWARE.\
 
 	def get_item_info_str(self, item):
 		item_info = self.bin_items[item]
-		ogname = item_info['ogname']
-		oglocation = item_info['oglocation']
+		ogname = os.path.basename(item_info['ogpath'])
+		oglocation = os.path.dirname(item_info['ogpath'])
 		item_type = item_info['type']
 		size = item_info['size']
-		deldate = item_info['deldate'].strftime(self.date_format)
+		deldate = item_info['deldate'].strftime(self.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
 
 		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
 
@@ -691,14 +699,9 @@ SOFTWARE.\
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_delete'], f'{self.lang["msgbox_delete_desc"]}\n\n{self.get_item_info_str(item)}', icon = 'warning', default = 'no'): return
-		if os.path.isdir(path):
-			try: shutil.rmtree(f'{path}$R{item}')
-			except OSError: self.report_error(term = False)
-		else:
-			try: os.remove(f'{path}$R{item}')
-			except OSError: self.report_error(term = False)
 		try: os.remove(f'{path}$I{item}')
-		except OSError: self.report_error(term = False)
+		except OSError as e: tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in delete operation:\n{e.filename}\n{e.strerror} ({e.errno})')
+
 		if not no_refresh: self.refresh(True)
 
 	def restore_item(self, item, no_prompt = False, no_refresh = False):
@@ -706,28 +709,37 @@ SOFTWARE.\
 
 		item_info = self.bin_items[item]
 		drive = item_info['rbin_drive']
-		ogname = item_info['ogname']
-		oglocation = item_info['oglocation']
-
+		ogpath = item_info['ogpath']
+		ogname = os.path.basename(ogpath)
+		oglocation = os.path.dirname(ogpath)
 
 		path = f'{drive}:{self.rbdir}\\'
-		if os.path.splitdrive(oglocation)[0] == '': ogpath = f'{os.getenv("USERPROFILE")}\\Desktop{oglocation}\\{ogname}'
-		else: ogpath = f'{oglocation}\\{ogname}'
+		if os.path.splitdrive(oglocation)[0] == '': restore_path = f'{os.getenv("USERPROFILE")}\\Desktop\\{ogpath}'
+		else: restore_path = ogpath
 
 		if not no_prompt:
 			if not tk.messagebox.askyesno(self.lang['msgbox_restore'], f'{self.lang["msgbox_restore_desc"]}\n\n{self.get_item_info_str(item)}'): return
 
-		if not os.path.exists(oglocation): os.makedirs(oglocation)
-		if os.path.exists(ogpath):
-			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_overwrite1']+ogname+self.lang['msgbox_overwrite2'], icon = 'warning'):
+		if not os.path.exists(oglocation):
+			try: os.makedirs(oglocation)
+			except OSError as e:
+				tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in makedirs operation:\n{e.filename}\n{e.strerror} ({e.errno})')
 				if no_refresh: return
 				else: self.refresh(True)
 
-		try: shutil.move(f'{path}$R{item}', ogpath)
-		except OSError: self.report_error(term = False)
+		if os.path.exists(restore_path) and os.path.isdir(restore_path) == item_info['isdir']:
+			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], f'{self.lang["msgbox_overwrite1"]}"{ogname}"{self.lang["msgbox_overwrite2"]}', icon = 'warning'):
+				if no_refresh: return
+				else: self.refresh(True)
+
+		try: shutil.move(f'{path}$R{item}', restore_path)
+		except OSError as e:
+			tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in move operation:\n{e.filename}\n{e.strerror} ({e.errno})')
+			if no_refresh: return
+			else: self.refresh(True)
 
 		try: os.remove(f'{path}$I{item}')
-		except OSError: self.report_error(term = False)
+		except OSError as e: tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in delete operation:\n{e.filename}\n{e.strerror} ({e.errno})')
 
 		if not no_refresh: self.refresh(True)
 
@@ -744,7 +756,7 @@ SOFTWARE.\
 class DTMenu:
 	def __init__(self, gui):
 		self.gui = gui
-		self.preview_date_time = datetime(2021, 10, 4, 14, 0, 0)
+		self.preview_date_time = datetime(2007, 1, 30, 12, 34, 56, tzinfo = timezone(timedelta(hours = 7)))
 
 	def init_window(self):
 		if not self.gui.dt_win_open:
@@ -758,10 +770,10 @@ class DTMenu:
 			self.dt_win.title(self.gui.lang['title_dtformat'])
 			try: self.dt_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
 			except tk.TclError:
-				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
 				tk.messagebox.showerror('Hmmm?', err_text)
-				sys.exit()
+				self.quit()
 
 			self.draw_menu()
 
@@ -780,14 +792,14 @@ class DTMenu:
 		else: self.quit()
 
 	def preview(self):
-		self.text = self.get_dt_entry(True)
+		self.text = self.get_dt_entry()
 		if self.text_check():
 			self.dt_preview = True
 			self.draw_menu()
 		else: return
 
 	def save(self):
-		self.text = self.get_dt_entry(True, True) 
+		self.text = self.get_dt_entry() 
 		if self.text_check():
 			if self.gui.date_format != self.text:
 				self.gui.date_format = self.text
@@ -806,29 +818,9 @@ class DTMenu:
 
 		return True
 
-	def get_dt_entry(self, show_warning = False, encode_check = False):
-		try:
-			dt_entry = self.dt_entry.get()
-			return dt_entry
-		except UnicodeDecodeError:
-			if show_warning:
-				tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
-				self.text = self.gui.date_format
-				self.draw_menu()
-
-			dt_entry = self.gui.date_format
-			return dt_entry
-
-		if encode_check:
-			try: self.preview_date_time.strftime(dt_entry)
-			except UnicodeEncodeError:
-				if show_warning:
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
-					self.text = self.gui.date_format
-					self.draw_menu()
-
-				dt_entry = self.gui.date_format
-				return dt_entry
+	def get_dt_entry(self):
+		dt_entry = self.dt_entry.get()
+		return dt_entry
 
 	def help(self):
 		tk.messagebox.showinfo(self.gui.lang['help'], self.gui.lang['dtformat_guide'])
@@ -853,12 +845,8 @@ class DTMenu:
 		scroll.pack(fill = 'x')
 		ttk.Button(self.dt_win, text = self.gui.lang['help'], command = self.help).pack()
 
-		if self.dt_preview:
-			try: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.preview_date_time.strftime(self.text)}', master = self.dt_win)
-			except UnicodeEncodeError:
-				tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_unicode_error'])
-				self.dt_preview = False
-				self.draw_menu()
+		# https://stackoverflow.com/a/49791321
+		if self.dt_preview: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.preview_date_time.strftime(self.text.encode("unicode-escape").decode()).encode().decode("unicode-escape")}', master = self.dt_win)
 
 
 class ItemEdit:
@@ -883,17 +871,22 @@ class ItemEdit:
 		self.draw_blank()
 		ttk.Button(text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 		self.draw_blank(side = 'bottom')
-		ttk.Button(text = self.gui.lang['edit'], command = lambda e = item_info, f = item: self.gui.new_item.edit_item(e['version'], e['ogname'], e['oglocation'], os.path.isdir(self.gui.rbhandler.get_rb_path(f, 'R')), e['size'], e['deldate'].astimezone(timezone.utc), f)).pack(side = 'bottom')
+		ttk.Button(text = self.gui.lang['edit'], command = lambda e = item_info, f = item: self.gui.new_item.edit_item(e['version'], e['ogpath'], os.path.isdir(self.gui.rbhandler.get_rb_path(f, 'R')), e['size'], e['deldate'].astimezone(timezone.utc), f)).pack(side = 'bottom')
+
+		ogname = os.path.basename(item_info['ogpath'])
+		oglocation = os.path.dirname(item_info['ogpath'])
 
 		ogname_frame = tk.Frame()
 		self.draw_label(self.gui.lang['itemedit_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
-		self.draw_label(item_info['ogname'], side = 'right', master = ogname_frame)
+		if item_info['unterminated_str'] and ogname != '': self.draw_label(self.gui.lang['itemedit_ogname_unterminated'], side = 'left', master = ogname_frame)
+		self.draw_label(ogname, side = 'right', master = ogname_frame)
 		ogname_frame.pack(fill = 'x')
 
 		oglocation_frame = tk.Frame()
 		self.draw_label(self.gui.lang['oglocation'], font = self.bold_font, side = 'left', master = oglocation_frame)
+		if item_info['unterminated_str'] and ogname == '': self.draw_label(self.gui.lang['itemedit_ogname_unterminated'], side = 'left', master = oglocation_frame)
 		self.draw_label('*', side = 'left', master = oglocation_frame)
-		self.draw_label(item_info['oglocation'], side = 'right', master = oglocation_frame)
+		self.draw_label(oglocation, side = 'right', master = oglocation_frame)
 		oglocation_frame.pack(fill = 'x')
 
 		type_frame = tk.Frame()
@@ -914,7 +907,7 @@ class ItemEdit:
 
 		deldate_frame = tk.Frame()
 		self.draw_label(self.gui.lang['deldate'], font = self.bold_font, side = 'left', master = deldate_frame)
-		self.draw_label(item_info['deldate'].strftime(self.gui.date_format), side = 'right', master = deldate_frame)
+		self.draw_label(item_info['deldate'].strftime(self.gui.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape'), side = 'right', master = deldate_frame)
 		deldate_frame.pack(fill = 'x')
 
 		if self.show_advanced:
@@ -978,19 +971,20 @@ class NewItem:
 
 	def create_item(self):
 		version = '1' if self.gui.rbhandler.get_os_version() <= (6, 3) else '2'
-		name = self.gui.lang['new_item_name']
-		location = 'C:'
+		path = 'C:\\' + self.gui.lang['new_item_name']
 		is_folder = False
 		size = 0
 		deldate = datetime.utcnow().replace(tzinfo = timezone.utc)
 
-		self.item_maker(False, version, name, location, is_folder, size, deldate)
+		self.item_maker(False, version, path, is_folder, size, deldate)
 
-	def create_item_call(self, version, path, is_folder, size, deldate):
+	def create_item_call(self, version, path, is_folder, size, deldate, no_terminator = False):
 		if not self.discarded:
-			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder)
+			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder, not no_terminator)
 
 			drive = os.path.splitdrive(path)[0]
+			if drive != '':
+				if drive[0] not in self.gui.rbhandler.get_drives(): drive = 'C:'
 			ext = os.path.splitext(path)[1]
 			rbdir = f'{drive}{self.gui.rbdir}'
 			f = os.listdir(rbdir)
@@ -1007,15 +1001,17 @@ class NewItem:
 
 		self.end()
 
-	def edit_item(self, version, name, location, is_folder, size, deldate, random_str):
+	def edit_item(self, version, path, is_folder, size, deldate, random_str):
 		self.gui.itemedit.show_advanced = False
-		self.item_maker(False, version, name, location, is_folder, size, deldate, random_str, True)
+		self.item_maker(False, version, path, is_folder, size, deldate, random_str, True)
 
-	def edit_item_call(self, version, path, is_folder, size, deldate, random_str, old_ext):
+	def edit_item_call(self, version, path, is_folder, size, deldate, random_str, old_ext, no_terminator = False):
 		if not self.discarded:
-			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder)
+			file_data = self.gui.rbhandler.write_metadata(version, path, size, deldate, is_folder, not no_terminator)
 
 			drive = os.path.splitdrive(path)[0]
+			if drive != '':
+				if drive[0] not in self.gui.rbhandler.get_drives(): drive = 'C:'
 			ext = os.path.splitext(path)[1]
 			rbdir = f'{drive}{self.gui.rbdir}'
 			rbname = random_str + old_ext
@@ -1031,22 +1027,39 @@ class NewItem:
 
 		self.end()
 
-	def item_maker(self, return_mode, version, name, location, is_folder, size, deldate, random_str = None, edit_mode = False, hacker_mode = False):
+	def item_maker(self, return_mode, version, path, is_folder, size, deldate, random_str = None, edit_mode = False, hacker_mode = False, no_terminator = False):
 		if return_mode:
 			for i in range(1): # allows using break to skip code
-				if name == '':
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["itemedit_ogname"]}: {self.gui.lang["msgbox_blank"]}')
-					break
-				if not self.validate_text(name, self.ntfs_blacklist, '\\'):
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_name"]}\n\\ / : * ? " < > |')
-					break
+				if not hacker_mode:
+					if path == '':
+						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_path"]}: {self.gui.lang["msgbox_blank"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+						break
 
-				if location == '':
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["oglocation"]}: {self.gui.lang["msgbox_blank"]}')
-					break
-				if not self.validate_text(location, self.ntfs_blacklist):
-					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path"]}\n/ : * ? " < > |')
-					break
+					path_drive, path_nodr = os.path.splitdrive(path)
+
+					if path_drive != '':
+						if path_drive[0] not in self.gui.rbhandler.get_drives():
+							tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path_3"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+							break
+
+					if not self.validate_text(path_nodr, self.ntfs_blacklist):
+						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path"]}\n/ : * ? " < > |\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+						break
+					if path_nodr == '':
+						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path_2"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+						break
+					# check if path_nodr only has backslashes
+					path_nodr_onlybslash = True
+					for char in path_nodr:
+						if char == '\\': continue
+						else:
+							path_nodr_onlybslash = False
+							break
+					if path_nodr_onlybslash:
+						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path_2"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+						break
+
+					if no_terminator: no_terminator = False
 
 				try: size_int = int(size)
 				except ValueError:
@@ -1063,43 +1076,37 @@ class NewItem:
 				elif version_int == 2 and self.gui.rbhandler.get_os_version() <= (6, 3):
 					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
 
-				if edit_mode: self.edit_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate, *os.path.splitext(random_str))
-				else: self.create_item_call(version_int, location+'\\'+name, is_folder, size_int, deldate)
+				if edit_mode: self.edit_item_call(version_int, path, is_folder, size_int, deldate, *os.path.splitext(random_str), no_terminator)
+				else: self.create_item_call(version_int, path, is_folder, size_int, deldate, no_terminator)
 		else:
 			self.version_TEMP = version
-			self.name_TEMP = name
-			self.location_TEMP = location
+			self.path_TEMP = path
 			self.is_folder_TEMP = tk.BooleanVar(); self.is_folder_TEMP.set(is_folder)
 			self.size_TEMP = size
 			self.deldate_TEMP = deldate
 			self.random_str_TEMP = random_str
 			self.edit_mode_TEMP = edit_mode
-			self.hacker_mode_TEMP = hacker_mode
+			self.hacker_mode_TEMP = tk.BooleanVar(); self.hacker_mode_TEMP.set(hacker_mode)
+			self.no_terminator_TEMP = tk.BooleanVar(); self.no_terminator_TEMP.set(no_terminator)
 
-			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format)
+			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
 
 			self.gui.refresh()
 			self.gui.window.protocol('WM_DELETE_WINDOW', lambda: self.discard(True))
+			self.gui.reload_confirm_func = self.discard_confirm
 			if self.edit_mode_TEMP: self.gui.draw_label(self.gui.lang['new_item_edit'], font = self.gui.bold_font)
 			else: self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
 			self.gui.draw_blank()
-			ttk.Button(text = self.gui.lang['discard'], command = lambda: self.discard(False, self.edit_mode_TEMP)).pack(side = 'bottom')
+			ttk.Button(text = self.gui.lang['discard'], command = lambda: self.discard()).pack(side = 'bottom')
 			ok_button = ttk.Button(text = 'OK', command = self.set_return)
 			ok_button.pack(side = 'bottom')
 
-			ogname_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['itemedit_ogname'], font = self.gui.bold_font, side = 'left', master = ogname_frame)
-			self.ogname_entry = ttk.Entry(ogname_frame, width = 30, justify = 'right')
-			self.ogname_entry.insert(0, self.name_TEMP)
-			self.ogname_entry.pack(side = 'right')
-			ogname_frame.pack(fill = 'x')
-
-			oglocation_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['oglocation'], font = self.gui.bold_font, side = 'left', master = oglocation_frame)
-			self.oglocation_entry = ttk.Entry(oglocation_frame, width = 30, justify = 'right')
-			self.oglocation_entry.insert(0, self.location_TEMP)
-			self.oglocation_entry.pack(side = 'right')
-			oglocation_frame.pack(fill = 'x')
+			path_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['new_item_path'], font = self.gui.bold_font, side = 'left', master = path_frame)
+			self.path_entry = ttk.Entry(path_frame, width = 30, justify = 'right')
+			self.path_entry.insert(0, self.path_TEMP)
+			self.path_entry.pack(side = 'right')
+			path_frame.pack(fill = 'x')
 
 			is_folder_frame = tk.Frame()
 			self.gui.draw_label(self.gui.lang['new_item_folder'], font = self.gui.bold_font, side = 'left', master = is_folder_frame)
@@ -1127,24 +1134,42 @@ class NewItem:
 			self.version_entry.pack(side = 'right')
 			version_frame.pack(fill = 'x')
 
+			self.gui.draw_blank()
+			self.gui.draw_label(self.gui.lang['new_item_hacker_mode'], font = self.gui.bold_font)
+
+			hacker_mode_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['new_item_hacker_mode_enable'], side = 'left', master = hacker_mode_frame)
+			ttk.Checkbutton(hacker_mode_frame, variable = self.hacker_mode_TEMP, command = lambda: self.set_hacker(self.hacker_mode_TEMP.get())).pack(side = 'right')
+			hacker_mode_frame.pack(fill = 'x')
+
+			no_terminator_frame = tk.Frame()
+			self.gui.draw_label(self.gui.lang['new_item_hacker_mode_no_terminator'], side = 'left', master = no_terminator_frame)
+			no_terminator_checkbox = ttk.Checkbutton(no_terminator_frame, variable = self.no_terminator_TEMP)
+			if not self.hacker_mode_TEMP.get(): no_terminator_checkbox.config(state = 'disabled')
+			no_terminator_checkbox.pack(side = 'right')
+			no_terminator_frame.pack(fill = 'x')
+
 			self.gui.window.mainloop()
 
-	def set_return(self): self.item_maker(True, self.version_entry.get(), self.ogname_entry.get(), self.oglocation_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP)
+	def set_return(self): self.item_maker(True, self.version_entry.get(), self.path_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP, self.hacker_mode_TEMP.get(), self.no_terminator_TEMP.get())
+
+	def set_hacker(self, value): self.item_maker(False, self.version_entry.get(), self.path_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP, value, self.no_terminator_TEMP.get())
 
 	def datetime_editor(self): self.gui.n_a()
 
-	def validate_text(self, text, blacklist, extra_blacklist = ''):
+	def validate_text(self, text, blacklist):
 		for char in text:
-			if char in blacklist + extra_blacklist: return False
-			else: return True
+			if char in blacklist: return False
 
 		return True
 
-	def discard(self, delete_window = False, edit_mode = False):
-		if tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard'] if edit_mode else self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no'):
+	def discard(self, delete_window = False):
+		if self.discard_confirm():
 			self.discarded = True
 			if delete_window: sys.exit()
 			else: self.end()
+
+	def discard_confirm(self): return tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['msgbox_discard'] if self.edit_mode_TEMP else self.gui.lang['msgbox_discard_item'], icon = 'warning', default = 'no')
 
 	def end(self):
 		self.gui.window.protocol('WM_DELETE_WINDOW', self.gui.quit)
@@ -1171,10 +1196,10 @@ class Updater_GUI:
 			self.updater_win.title(self.gui.lang['updater_title'])
 			try: self.updater_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
 			except tk.TclError:
-				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/gamingwithevets/{repo_name}/issues'
+				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
 				tk.messagebox.showerror('Hmmm?', err_text)
-				sys.exit()
+				self.quit()
 
 			if self.auto: self.updater_win.withdraw()
 			self.updater_win.focus()
@@ -1199,6 +1224,7 @@ class Updater_GUI:
 		while self.update_thread.is_alive():
 			self.updater_win.update_idletasks()
 			self.progressbar['value'] = self.gui.updater.progress
+		self.progressbar['value'] = 100
 		self.update_thread.join()
 		update_info = self.update_thread.result
 
@@ -1208,7 +1234,7 @@ class Updater_GUI:
 				if not self.auto:
 					if update_info['exceeded']: self.draw_msg(self.gui.lang['updater_exceeded'])
 					elif update_info['nowifi']: self.draw_msg(self.gui.lang['updater_offline'])
-					else: self.draw_msg(self.gui.lang['msgbox_updater_unknown_error'])
+					else: self.draw_msg(self.gui.lang['updater_unknown_error'])
 			elif update_info['newupdate']: self.draw_download_msg(update_info['title'], update_info['tag'], update_info['prerelease'])
 			else:
 				if not self.auto: self.draw_msg(self.gui.lang['updater_latest'])
@@ -1229,8 +1255,8 @@ class Updater_GUI:
 	def draw_download_msg(self, title, tag, prever):
 		for w in self.updater_win.winfo_children(): w.destroy()
 		self.gui.draw_label(self.gui.lang['updater_newupdate'], master = self.updater_win)
-		self.gui.draw_label(f'{self.gui.lang["updater_currver"]} {self.gui.version}{self.gui.lang["updater_prerelease"] if prerelease else ""}', master = self.updater_win)
-		self.gui.draw_label(f'{self.gui.lang["updater_newver"]} {title}{self.gui.lang["updater_prerelease"] if prever else ""}', master = self.updater_win)
+		self.gui.draw_label(f'{self.gui.lang["updater_currver"]}{self.gui.version}{self.gui.lang["updater_prerelease"] if prerelease else ""}', master = self.updater_win)
+		self.gui.draw_label(f'{self.gui.lang["updater_newver"]}{title}{self.gui.lang["updater_prerelease"] if prever else ""}', master = self.updater_win)
 		ttk.Button(self.updater_win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
 		ttk.Button(self.updater_win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
 		
@@ -1247,6 +1273,7 @@ class Updater:
 		self.request_limit = 5
 
 		self.progress = 0
+		self.progress_inc = 25
 
 	def check_internet(self):
 		try:
@@ -1278,7 +1305,7 @@ class Updater:
 			for info in response.json(): versions.append(info['tag_name'])
 
 			# UPDATE POINT 1
-			self.progress += 1/3*100
+			self.progress += self.progress_inc
 
 			if internal_version not in versions:
 				try:
@@ -1293,12 +1320,16 @@ class Updater:
 				except Exception: return {'newupdate': False, 'error': False}
 			if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
+			# UPDATE POINT 2
+			self.progress += self.progress_inc
+
 			for i in range(self.request_limit):
 				try:
 					response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{internal_version}')
 					break
 				except Exception:
-					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}\
+
 			try:
 				testvar = response.json()['message']
 				if 'API rate limit exceeded for' in testvar:
@@ -1311,7 +1342,9 @@ class Updater:
 			except Exception: pass
 
 			currvertime = response.json()['published_at']
-			self.progress += 1/3*100
+
+			# UPDATE POINT 3
+			self.progress += self.progress_inc
 
 			if not prerelease:
 				if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
@@ -1433,6 +1466,6 @@ class VerticalScrolledFrame(tk.Frame):
 
 # https://stackoverflow.com/a/65447493
 class ThreadWithResult(threading.Thread):
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
-        def function(): self.result = target(*args, **kwargs)
-        super().__init__(group=group, target=function, name=name, daemon=daemon)
+	def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
+		def function(): self.result = target(*args, **kwargs)
+		super().__init__(group=group, target=function, name=name, daemon=daemon)
