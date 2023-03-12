@@ -7,8 +7,28 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 ![RBEditor Beta 1.3.0_01 GIF](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW)  
 *(If the GIF doesn't show, click [here](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW) to see it)*
 
-[Download for Windows 7, 8, 8.1, 10, 11](../../releases/latest)  
-(note: binaries require at least Windows 7 for binaries after Beta 1.2.1, or Windows 10 for binaries for Beta 1.2.1 and older)
+[Download for Windows Vista, 7, 8, 8.1, 10, 11](../../releases/latest)  
+<details>
+<summary><b>View compatibility list</b></summary><br>
+<table style="width:100%">
+  <tr>
+    <th>RBEditor binary version</th>
+    <th>Windows version required</th>
+  </tr>
+  <tr>
+    <td>0.1.0+</td>
+    <td>At least Windows Vista</td>
+  </tr>
+  <tr>
+    <td>Beta 1.2.1_01 - Beta 1.4.0</td>
+    <td>At least Windows 7</td>
+  </tr>
+  <tr>
+    <td>Beta 1.1.0 - Beta 1.2.1</td>
+    <td>At least Windows 10</td>
+  </tr>
+</table>
+</details>
 
 # Features
 - Create files and folders in the Recycle Bin (without any deletion)
