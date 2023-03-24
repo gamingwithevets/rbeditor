@@ -53,8 +53,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '0.1.1'
-internal_version = 'v0.1.1'
+version = '0.1.2'
+internal_version = 'v0.1.2'
 prerelease = True
 
 license = 'MIT'
@@ -357,16 +357,14 @@ class GUI:
 		self.date_format = self.default_date_format
 		self.tz = datetime.now(timezone.utc).astimezone().tzinfo
 
-		self.languages = (
-		('en_US', 'English'),
-		('ja_JP', '日本語'),
-		('vi_VN', 'Tiếng Việt'),
-		)
+		self.languages = {
+		'en_US': 'English',
+		'ja_JP': '日本語',
+		'vi_VN': 'Tiếng Việt',
+		}
 
 		self.language_tk = tk.StringVar(); self.language_tk.set('system')
-		self.locale_tk = tk.StringVar(); self.locale_tk.set('currlang')
 		self.language = ''
-		self.locale = ''
 		self.system_language_unavailable = False
 
 		self.auto_check_updates = tk.BooleanVar(); self.auto_check_updates.set(True)
@@ -416,8 +414,6 @@ class GUI:
 		if sects:
 			try: self.language_tk.set(self.ini['settings']['language'])
 			except Exception: pass
-			try: self.locale_tk.set(self.ini['settings']['locale'])
-			except Exception: pass
 			try: self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
 			except Exception: pass
 
@@ -428,12 +424,12 @@ class GUI:
 				except Exception: pass
 
 		self.set_lang()
+		self.save_settings()
 
 	def save_settings(self):
 		# settings are set individually to retain compatibility between versions
 		self.ini['settings'] = {}
 		self.ini['settings']['language'] = self.language_tk.get()
-		self.ini['settings']['locale'] = self.locale_tk.get()
 		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%').encode('unicode-escape').decode()
 
 		self.ini['updater'] = {}
@@ -448,7 +444,7 @@ class GUI:
 
 	def get_lang(self):
 		slang = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()]
-		if slang in [i[0] for i in self.languages]: return slang
+		if slang in self.languages: return slang
 		else:
 			self.system_language_unavailable = True
 			return 'en_US'
@@ -458,11 +454,10 @@ class GUI:
 			self.language = self.get_lang()
 			if self.system_language_unavailable:
 				self.language_tk.set('en_US')
-				self.save_settings()
 				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English.')
 		else:
 			self.language = self.language_tk.get()
-			if self.language_tk.get() not in [i[0] for i in self.languages]:
+			if self.language_tk.get() not in self.languages:
 				self.language_tk.set('en_US')
 				self.save_settings()
 
@@ -541,8 +536,10 @@ class GUI:
 		if master == None: master = self.window
 		self.draw_label('', side = side, master = master)
 
-	def about_menu(self): tk.messagebox.showinfo(self.lang['menubar_help_about'].format(name), f'''\
-{name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {self.lang['about_running_on'].format(platform.system() + ' x64' if platform.machine().endswith('64') else ' x86')}
+	def about_menu(self):
+		syst = platform.system(); syst += ' x64' if platform.machine().endswith('64') else ' x86'
+		tk.messagebox.showinfo(self.lang['menubar_help_about'].format(name), f'''\
+{name} - {version} ({'64' if sys.maxsize > 2**31-1 else '32'}-bit) - {self.lang['about_running_on'].format(syst)}
 {self.lang['about_project_page']}https://github.com/{username}/{repo_name}
 {self.lang['about_beta_build'] if prerelease else ''}
 {self.lang['about_licensed'].format(license)}
@@ -600,21 +597,18 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		rbin_menu = tk.Menu(menubar)
 		rbin_menu.add_command(label = self.lang['menubar_rbin_reload'], command = self.reload_confirm, accelerator = 'F5')
 		rbin_menu.add_command(label = self.lang['menubar_rbin_explorer_bin'], command = lambda: subprocess.Popen('explorer shell:recyclebinfolder', shell = True))
+		rbin_menu.add_separator()
 		rbin_menu.add_command(label = self.lang['menubar_rbin_exit'], command = self.quit)
 		menubar.add_cascade(label = self.lang['menubar_rbin'], menu = rbin_menu)
 
 		settings_menu = tk.Menu(menubar)
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.dt_menu.init_window)
 
-		for i in self.languages:
-			if i[0] == self.language: currlang_name = i[1]; break
-			else: currlang_name = None
-
 		self.lang_menu = tk.Menu(settings_menu)
-		self.lang_menu.add_command(label = self.lang['menubar_settings_language_info'], command = lambda: tk.messagebox.showinfo(self.lang['menubar_help_about'].format(currlang_name), self.lang['info']))
+		self.lang_menu.add_command(label = self.lang['menubar_settings_language_info'], command = lambda: tk.messagebox.showinfo(self.lang['menubar_help_about'].format(self.languages[self.language]), self.lang['info']))
 		self.lang_menu.add_separator()
 		self.lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang, state = 'disabled' if self.system_language_unavailable else 'normal')
-		for i in self.languages: self.lang_menu.add_radiobutton(label = i[1], variable = self.language_tk, value = i, command = self.change_lang)
+		for i in self.languages: self.lang_menu.add_radiobutton(label = self.languages[i], variable = self.language_tk, value = i, command = self.change_lang)
 		self.ena_dis_lang()
 		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
@@ -635,11 +629,11 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 	def ena_dis_lang(self):
 		for i in self.languages:
 			# try-except nest used in case of an unused language in language_names
-			try: self.lang_menu.entryconfig(i[1], state = 'normal')
+			try: self.lang_menu.entryconfig(i, state = 'normal')
 			except Exception: pass
 
 		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
-		else: self.lang_menu.entryconfig(self.languages[self.language][1], state = 'disabled')
+		else: self.lang_menu.entryconfig(self.languages[self.language], state = 'disabled')
 
 	def main(self):
 		try: self.draw_label(self.lang['title'], font = self.bold_font)
