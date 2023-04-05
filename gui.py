@@ -34,6 +34,7 @@ import string
 import getpass
 import binascii
 import tempfile
+import winsound
 import threading
 import win32file
 import subprocess
@@ -53,8 +54,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '0.1.2'
-internal_version = 'v0.1.2'
+version = '0.2.0'
+internal_version = 'v0.2.0'
 prerelease = True
 
 license = 'MIT'
@@ -180,7 +181,7 @@ class RBHandler:
 		ft = 116444736000000000 + int((dt - datetime(1970, 1, 1, tzinfo = timezone.utc)).total_seconds() * 10000000)
 		return ft
 
-	def convert_size(self, size_bytes):
+	def convert_size(self, size_bytes, extras = True):
 		def f(s): return f'{s:n}'
 
 		def add_digits(i, s):
@@ -212,9 +213,15 @@ class RBHandler:
 
 			if i_pow10 == 0: return f'{size_bytes:n} {self.gui.lang["bytes"]}'
 			else:
-				if i_pow2 == 0: return f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} ({size_bytes:n} {self.gui.lang["bytes"]})'
-				else: return f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)} ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
-		else: return f'{size_bytes} {self.gui.lang["bytes"]}'
+				if i_pow2 == 0:
+					string = f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)}'
+					if extras: string + f' ({size_bytes:n} {self.gui.lang["bytes"]})'
+				else:
+					string = f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)}'
+					if extras: string + f' ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
+		else: string = f'{size_bytes} {self.gui.lang["bytes"]}'
+
+		return string
 
 	def read_metadata(self, file_path):
 		file_to_read = os.path.basename(file_path)
@@ -319,6 +326,16 @@ class RBHandler:
 	def unicode_filter(self, string):
 		return ''.join(['□' if ord(c) > 0xFFFF else c for c in string]) if self.gui.unsupported_tcl else string
 
+	def format_date(self, date, fm = None): 
+		if fm == None: fm = self.gui.date_format
+		return date.strftime(fm.encode('unicode-escape').decode()).encode().decode('unicode-escape')
+
+	def get_all_childrens(self, w):
+		widgets = w.winfo_children()
+		for w in widgets: widgets += self.get_all_childrens(w)
+
+		return widgets
+
 class GUI:
 	def __init__(self, window):
 		self.version = version
@@ -333,7 +350,6 @@ class GUI:
 			self.updates = False
 			print('ERROR: No "requests" module found! Update checking disabled.')
 			tk.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
-
 
 		self.temp_path = temp_path
 
@@ -379,6 +395,8 @@ class GUI:
 		self.refreshing = True
 		self.reload_confirm_func = self.reload_confirm_default
 
+		self.context_menu_open = False
+
 		self.rbhandler = RBHandler(self)
 		self.itemproperties = ItemProperties(self)
 		self.dt_menu = DTMenu(self)
@@ -395,7 +413,7 @@ class GUI:
 		self.menubar()
 
 	def start_main(self):
-		if self.auto_check_updates.get(): self.window.after(0, lambda: self.updater_gui.init_window(self.auto_check_updates.get()))
+		if self.auto_check_updates.get(): self.updater_gui.init_window(True)
 		self.main()
 
 	def parse_settings(self):
@@ -492,11 +510,10 @@ class GUI:
 
 	def init_window(self):
 		self.window.geometry(f'{self.display_w}x{self.display_h}')
-		self.window.resizable(False, False)
-		self.window.unbind_all('<<NextWindow>>') # disable TAB focus
+		#self.window.unbind_all('<<NextWindow>>') # disable TAB focus (Keyboard functionality is being developed so this is disabled)
 		self.window.bind('<F5>', self.reload_confirm)
-		self.window.bind('x', self.version_details)
-		self.window.bind('X', self.version_details) # in case Caps Lock is on
+		self.window.bind('<F12>', self.version_details)
+		self.window.bind('<Button-3>', self.playsound)
 		self.window.option_add('*tearOff', False)
 		self.set_title()
 		try: self.window.iconbitmap(f'{self.temp_path}\\icon.ico')
@@ -514,7 +531,11 @@ class GUI:
 			self.window.quit()
 			sys.exit()
 
-	def draw_label(self, text, font = None, color = 'black', bg = None, side = 'top', anchor = 'center', recwidth = None, recheight = None, master = None):
+	def playsound(self, event):
+		if self.context_menu_open: self.context_menu_open = False
+		else: winsound.PlaySound('.Default', winsound.SND_ASYNC)
+
+	def draw_label(self, text, font = None, color = 'black', bg = None, side = 'top', anchor = 'center', recwidth = None, recheight = None, justify = None, master = None):
 		if master == None: master = self.window
 
 		def conv_anchor(a):
@@ -529,7 +550,7 @@ class GUI:
 			else: return a
 
 		anc = conv_anchor(anchor)
-		text = ttk.Label(master, text = text, font = font, foreground = color, background = bg, width = recwidth, height = recheight, anchor = anc)
+		text = ttk.Label(master, text = text, font = font, foreground = color, background = bg, width = recwidth, height = recheight, justify = justify, anchor = anc)
 		text.pack(side = side, anchor = anc)
 
 	def draw_blank(self, side = 'top', master = None):
@@ -640,10 +661,14 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		except Exception: self.draw_label(self.lang['title'])
 		self.draw_blank()
 
+		loading_text = ttk.Label(text = self.lang['main_loading']); loading_text.pack()
+		self.window.update()
+
 		if self.refreshing:
-			self.set_title(self.lang['main_loading'])
 			self.rbhandler.get_bin_items()
 			self.refreshing = False
+
+		loading_text.destroy()
 
 		if self.enable_rbin_metadata_unsupported_version_msg:
 			self.draw_label(self.lang['main_rbin_metadata_unsupported_version'])
@@ -668,14 +693,8 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 			frame.pack(fill = 'both', expand = True)
 
 			for item in self.bin_items:
-				item_frame = tk.Frame(frame.interior)
-				ttk.Button(item_frame, text = self.lang['main_properties'], command = lambda e = item: self.itemproperties.show_properties(e)).pack(side = 'right')
-				ttk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
-				ttk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
-				ttk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
-				self.draw_label(f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])), side = 'left', anchor = 'midleft', master = item_frame)
+				item_frame = FExplorerFrame(frame.interior, self, item, f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])))
 				item_frame.pack(fill = 'both')
-
 		else:
 			ttk.Button(text = self.lang['main_new_item'], command = self.new_item.create_item).pack()
 			self.draw_blank()
@@ -715,9 +734,9 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		oglocation = os.path.dirname(item_info['ogpath'])
 		item_type = item_info['type']
 		size = item_info['size']
-		deldate = item_info['deldate'].strftime(self.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
+		deldate = self.rbhandler.format_date(item_info['deldate'])
 
-		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
+		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size, False)}\n{self.lang["deldate"]}: {deldate}'
 
 	def delete_item(self, item, no_prompt = False, no_refresh = False):		
 		self.check_item_exist(item)
@@ -881,7 +900,7 @@ class DTMenu:
 		if self.dt_preview:
 			if self.gui.unsupported_tcl: tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unicode'])
 			# https://stackoverflow.com/a/49791321
-			else: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.preview_date_time.strftime(self.text.encode("unicode-escape").decode()).encode().decode("unicode-escape")}', master = self.dt_win)
+			else: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.gui.rbhandler.format_date(self.preview_date_time, self.text)}', justify = 'center', master = self.dt_win)
 
 
 class ItemProperties:
@@ -1113,7 +1132,7 @@ class NewItem:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['new_item_error_unsupported_version'])
 					break
 				elif version_int == 2 and self.gui.rbhandler.get_os_version() <= (6, 3):
-					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning']): break
+					if not tk.messagebox.askyesno(self.gui.lang['msgbox_warning'], self.gui.lang['new_item_version_warning'], icon = 'warning'): break
 
 				if edit_mode: self.edit_item_call(version_int, path, is_folder, size_int, deldate, *os.path.splitext(random_str), no_terminator)
 				else: self.create_item_call(version_int, path, is_folder, size_int, deldate, no_terminator)
@@ -1250,8 +1269,10 @@ class Updater_GUI:
 	def quit(self):
 		self.updater_win.grab_release()
 		self.updater_win.destroy()
-		self.auto = False
 		self.gui.updater_win_open = False
+		if self.auto:
+			self.auto = False
+			self.gui.main()
 
 	def main(self):
 		self.update_thread = ThreadWithResult(target = self.gui.updater.check_updates, args = (self.gui.check_prerelease_version.get(),))
@@ -1508,8 +1529,112 @@ class VerticalScrolledFrame(tk.Frame):
 				canvas.itemconfigure(interior_id, width=canvas.winfo_width())
 		canvas.bind('<Configure>', _configure_canvas)
 
+class FExplorerFrame(tk.Frame):
+	def __init__(self, master, gui, item, text, **kw):
+		tk.Frame.__init__(self, master, **kw)
+		self.gui = gui
+		self.item = item
+
+		self.hover_color = '#E5F3FF'
+		self.select_color = '#CCE8FF'
+		self.highlight_color = '#99D1FF'
+		self.norm_color = self.cget('bg')
+
+		self.configure(highlightthickness = 1)
+
+		self.hovered = False
+		self.selected = False
+
+		self.label = tk.Label(self, text = text, anchor = 'nw')
+		self.label.pack(side = 'left', anchor = 'nw')
+		self.label.bind('<Button-1>', self.select)
+		self.label.bind('<Button-3>', self.rclick_menu)
+
+		style = ttk.Style()
+		style.configure('Sel.TButton', background = self.select_color, height = 10)
+
+		self.blank = tk.Label(self, bg = self.select_color, anchor = 'sw')
+		self.button_frame = tk.Frame(self)
+		ttk.Button(self.button_frame, text = self.gui.lang['main_restore'], style = 'Sel.TButton', command = lambda e = item: self.gui.restore_item(e)).pack(side = 'left')
+		ttk.Button(self.button_frame, text = self.gui.lang['main_delete'], style = 'Sel.TButton', command = lambda e = item: self.gui.delete_item(e)).pack(side = 'right')
+
+		self.context_menu = tk.Menu(self, tearoff = False)
+		self.context_menu.add_command(label = self.gui.lang['main_open'], font = self.gui.bold_font, command = lambda: self.gui.open_item(item))
+		self.context_menu.add_command(label = self.gui.lang['edit'], command = self.edit_item)
+		self.context_menu.add_separator()
+		self.context_menu.add_command(label = self.gui.lang['main_restore'], command = lambda: self.gui.restore_item(item))
+		self.context_menu.add_command(label = self.gui.lang['main_delete'], command = lambda: self.gui.delete_item(item))
+		self.context_menu.add_separator()
+		self.context_menu.add_command(label = self.gui.lang['main_properties'], command = self.show_properties)
+
+		self.bind('<Enter>', self.hover_enter)
+		self.bind('<Leave>', self.hover_leave)
+		self.bind('<Button-1>', self.select)
+		self.bind('<Double-1>', lambda x: self.gui.open_item(item))
+
+	def show_properties(self):
+		self.gui.window.unbind('<Button-1>')
+		self.gui.itemproperties.show_properties(self.item)
+
+	def edit_item(self):
+		item_info = self.gui.bin_items[self.item]
+
+		self.gui.window.unbind('<Button-1>')
+		self.gui.new_item.edit_item(item_info['version'], item_info['ogpath'], os.path.isdir(self.gui.rbhandler.get_rb_path(self.item, 'R')), item_info['size'], item_info['deldate'].astimezone(timezone.utc), self.item)
+
+	def hover_enter(self, event):
+		if not self.selected:
+			self.hovered = True
+			self.configure(bg = self.hover_color)
+			self.label.configure(bg = self.hover_color)
+
+	def hover_leave(self, event):
+		if not self.selected:
+			self.hovered = False
+			self.configure(bg = self.norm_color)
+			self.label.configure(bg = self.norm_color)
+
+	def select(self, event = None):
+		self.after(10, self.deselect_all)
+		self.selected = True
+		self.configure(bg = self.select_color, highlightbackground = self.highlight_color)
+		self.label.configure(bg = self.select_color)
+		self.blank.pack()
+		self.button_frame.pack(side = 'right')
+		self.bind('<Button-3>', self.rclick_menu)
+		self.gui.window.bind('<Button-1>', self.deselect_init)
+
+	def deselect_init(self, event):
+		if self.selected and self.winfo_containing(event.x_root, event.y_root) not in self.gui.rbhandler.get_all_childrens(self) + [self]: self.after(10, self.deselect)
+
+	def deselect(self, event = None):
+		self.selected = False
+		self.configure(bg = self.norm_color)
+		self.label.configure(bg = self.norm_color)
+		self.button_frame.pack_forget()
+		self.blank.pack_forget()
+		self.unbind('<Button-3>')
+
+	def deselect_all(self):
+		for w in self.master.winfo_children():
+			if isinstance(w, FExplorerFrame) and w != self:
+				w.configure(highlightbackground = self.norm_color)
+				if w.selected:
+					w.selected = False
+					w.configure(bg = self.norm_color)
+					w.label.configure(bg = self.norm_color)
+					w.button_frame.pack_forget()
+					w.blank.pack_forget()
+					w.unbind('<Button-3>')
+
+	def rclick_menu(self, event):
+		if not self.selected: self.select()
+		self.gui.context_menu_open = True
+		self.context_menu.tk_popup(event.x_root, event.y_root)
+
 # https://stackoverflow.com/a/65447493
 class ThreadWithResult(threading.Thread):
 	def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
 		def function(): self.result = target(*args, **kwargs)
 		super().__init__(group=group, target=function, name=name, daemon=daemon)
+		

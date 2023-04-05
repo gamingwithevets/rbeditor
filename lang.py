@@ -17,20 +17,20 @@ English - original language of RBEditor
 		'dtformat_guide': '''\
 Source: https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-behavior
 
-%a - Weekday as locale’s abbreviated name.
-%A - Weekday as locale’s full name.
+%a - Weekday as locale's abbreviated name.
+%A - Weekday as locale's full name.
 %w - Weekday as a decimal number, where 0 is Sunday and 6 is Saturday.
 
 %d - Day of the month as a zero-padded decimal number.
-%b - Month as locale’s abbreviated name.
-%B - Month as locale’s full name.
+%b - Month as locale's abbreviated name.
+%B - Month as locale's full name.
 %m - Month as a zero-padded decimal number.
 %y - Year without century as a zero-padded decimal number.
 %Y - Year with century as a decimal number.
 
 %H - Hour (24-hour clock) as a zero-padded decimal number.
 %I - Hour (12-hour clock) as a zero-padded decimal number.
-%p - Locale’s equivalent of either AM or PM.
+%p - Locale's equivalent of either AM or PM.
 %M - Minute as a zero-padded decimal number.
 %S - Second as a zero-padded decimal number.
 %f - Microsecond as a decimal number, zero-padded to 6 digits.
@@ -41,9 +41,9 @@ Source: https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-
 %U - Week number of the year (Sunday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Sunday are considered to be in week 0.
 %W - Week number of the year (Monday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Monday are considered to be in week 0.
 
-%c - Locale’s appropriate date and time representation.
-%x - Locale’s appropriate date representation.
-%X - Locale’s appropriate time representation.
+%c - Locale's appropriate date and time representation.
+%x - Locale's appropriate date representation.
+%X - Locale's appropriate time representation.
 
 %G - ISO 8601 year with century representing the year that contains the greater part of the ISO week (%V).
 %u - ISO 8601 weekday as a decimal number where 1 is Monday.
@@ -70,20 +70,11 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'menubar_settings_language': 'Language',
 		'menubar_settings_language_system': 'System language',
 		'menubar_settings_language_info': 'Info for current language',
-		'menubar_settings_locale': 'Locale',
-		'menubar_settings_locale_currlang': 'Use current language\'s locale',
-		'menubar_settings_locale_system': 'System locale',
 		'menubar_settings_updates': 'Updates',
 		'menubar_settings_updates_auto': 'Check for updates on startup',
 		'menubar_settings_updates_prerelease': 'Check for pre-release versions',
 		'menubar_help_update': 'Check for updates',
 		'menubar_help_about': 'About {}',
-
-		'locale_en_US': 'English (United States)',
-		#'locale_en_GB': 'English (United Kingdom)',
-		'locale_en_AU': 'English (Australia)',
-		'locale_ja_JP': 'Japanese (Japan)',
-		'locale_vi_VN': 'Vietnamese (Vietnam)',
 
 		'msgbox_error': 'Error',
 		'msgbox_warning': 'Warning',
@@ -125,6 +116,7 @@ Do you want to continue?\
 		'msgbox_delete_all': 'Empty the Recycle Bin?',
 		'msgbox_delete_all_desc': 'Are you sure you want to wipe out all your deleted items?\nThink twice before doing this, because you might not be able to recover them in the future...',
 
+		'ogname': 'Name',
 		'oglocation': 'Original location',
 		'type': 'Type',
 		'size': 'Size',
@@ -214,7 +206,7 @@ Tiếng Việt - ngôn ngữ thứ hai của RBEditor
 (c) 2022-2023 GamingWithEvets Inc.\
 ''',
 
-		'title': 'PHẦN MỀM CHỈNH SỬA THÙNG RÁC - RBEditor',
+		'title': 'TRÌNH CHỈNH SỬA THÙNG RÁC - RBEditor',
 		'title_dtformat': 'Định dạng ngày giờ',
 		'dtformat': 'Định dạng ngày giờ',
 		'dtformat_preview': 'Định dạng ngày và giờ của bạn trông như thế nào khi được sử dụng:',
@@ -229,7 +221,7 @@ Nguồn: https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime
 %d - Ngày trong tháng dưới dạng số thập phân có đệm số không.
 %b - Tháng là tên viết tắt của ngôn ngữ.
 %B - Tháng là tên đầy đủ của ngôn ngữ.
-%m - Tháng dưới dạng số thập phân không đệm.
+%m - Tháng dưới dạng số thập phân có đệm số không.
 %y - Năm không có thế kỷ dưới dạng số thập phân có đệm số không.
 %Y - Năm với thế kỷ dưới dạng số thập phân.
 
@@ -321,6 +313,7 @@ Bạn có muốn tiếp tục không?\
 		'msgbox_delete_all': 'Làm rỗng Thùng rác?',
 		'msgbox_delete_all_desc': 'Bạn có chắc chắn muốn xóa tất cả các khoản mục đã xóa của mình không?\nHãy suy nghĩ kỹ trước khi thực hiện việc này, vì bạn đâu chắc là có thể khôi phục được chúng trong tương lai đâu...',
 
+		'ogname': 'Tên',
 		'oglocation': 'Vị trí gốc',
 		'type': 'Loại',
 		'size': 'Kích cỡ',
@@ -420,27 +413,27 @@ Bạn có muốn tiếp tục không?\
 
 %a - ロケールの曜日名を短縮形で表示します。
 %A - ロケールの曜日名を表示します。
-%w - 曜日を１０進表記した文字列を表示します。０が日曜日で、６が土曜日を表します。
+%w - 曜日を10進表記した文字列を表示します。0が日曜日で、6が土曜日を表します。
 
-%d - ０埋めした１０進数で表記した月中の日にち。
+%d - 0埋めした10進数で表記した月中の日にち。
 %b - ロケールの月名を短縮形で表示します。
 %B - ロケールの月名を表示します。
-%m - ０埋めした１０進数で表記した月。
-%y - ０埋めした１０進数で表記した世紀無しの年。
-%Y - 西暦（４桁）の１０進表記を表します。
+%m - 0埋めした10進数で表記した月。
+%y - 0埋めした10進数で表記した世紀無しの年。
+%Y - 西暦（4桁）の10進表記を表します。
 
-%H - ０埋めした１０進数で表記した時（２４時間表記）。
-%I - ０埋めした１０進数で表記した時（１２時間表記）。
+%H - 0埋めした10進数で表記した時（24時間表記）。
+%I - 0埋めした10進数で表記した時（24時間表記）。
 %p - ロケールの AM もしくは PM と等価な文字列になります。
-%M - ０埋めした１０進数で表記した分。
-%S - ０埋めした１０進数で表記した秒。
-%f - １０進数で表記したマイクロ秒（左側から０埋めされます）。
+%M - 0埋めした10進数で表記した分。
+%S - 0埋めした10進数で表記した秒。
+%f - 10進数で表記したマイクロ秒（左側から0埋めされます）。
 %z - UTCオフセットを ±HHMM[SS[.ffffff]] の形式で表示します。
 %Z - タイムゾーンの名前を表示します。
 
-%j - ０埋めした１０進数で表記した年中の日にち。
-%U - ０埋めした１０進数で表記した年中の週番号（週の始まりは日曜日とする）。新年の最初の日曜日に先立つ日は０週に属するとします。
-%W - ０埋めした１０進数で表記した年中の週番号（週の始まりは月曜日とする）。新年の最初の月曜日に先立つ日は０週に属するとします。
+%j - 0埋めした10進数で表記した年中の日にち。
+%U - 0埋めした10進数で表記した年中の週番号（週の始まりは日曜日とする）。新年の最初の日曜日に先立つ日は0週に属するとします。
+%W - 0埋めした10進数で表記した年中の週番号（週の始まりは月曜日とする）。新年の最初の月曜日に先立つ日は0週に属するとします。
 
 %c - ロケールの日時を適切な形式で表します。
 %x - ロケールの日付を適切な形式で表します。
@@ -517,6 +510,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_delete_all': 'ごみ箱を空にする？',
 		'msgbox_delete_all_desc': '削除済みアイテムをすべて消去してもよろしいですか?\n将来復元できない可能性があるため、これを行う前によく考えてください...',
 
+		'ogname': '名前',
 		'oglocation': '元の場所',
 		'type': '種類',
 		'size': 'サイズ',

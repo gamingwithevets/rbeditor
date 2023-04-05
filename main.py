@@ -3,7 +3,7 @@ import os
 if os.name != 'nt':
 	print('This program is only available for Windows NT operating systems. Sorry!')
 	sys.exit()
-
+	
 python_requirement = (3, 6, 0)
 
 import platform
