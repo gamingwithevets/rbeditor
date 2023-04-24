@@ -72,10 +72,10 @@ If you are willing to build a binary for use by the public, I used a **Windows V
 Pick your favorite method! You can pick either `git clone`, downloading a ZIP file or other means.
 
 **Step 1:** Install the modules  
-Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will only install necessary packages for *running* RBEditor, so make sure to also run `python -m pip install pyinstaller` as well!
+Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will install the WMI and Requests modules. Make sure to also run `python -m pip install pyinstaller` to install PyInstaller as well!
 
 **Step 2:** Test it  
 Run `python main.py`. Now check that everything works.
 
-**Step 2:** Build it  
-After checking everything, run `python -m PyInstaller rbeditor.spec` (f you get `no module named PyInstaller`, that means you didn't install PyInstaller yet). Wait about 20 seconds for it to compile, and you are done!
+**Step 3:** Build it  
+After checking everything, run `python -m PyInstaller rbeditor.spec` (if you get `no module named PyInstaller`, that means you didn't install PyInstaller yet). Wait about 20 seconds for it to compile, and you are done!
