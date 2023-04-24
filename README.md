@@ -35,6 +35,7 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 - Open and edit files and folders in the Recycle Bin
 - Normal Recycle Bin actions (delete, restore)
 - Edit Recycle Bin file metadata
+- **Hacker mode**
 - Multilanguage support
 
 # Languages
@@ -72,10 +73,10 @@ If you are willing to build a binary for use by the public, I used a **Windows V
 Pick your favorite method! You can pick either `git clone`, downloading a ZIP file or other means.
 
 **Step 1:** Install the modules  
-Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will install the WMI and Requests modules. Make sure to also run `python -m pip install pyinstaller` to install PyInstaller as well!
+Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will install both WMI and Requests. Make sure to also run `python -m pip install pyinstaller` to install PyInstaller as well!
 
 **Step 2:** Test it  
-Run `python main.py`. Now check that everything works.
+Run `python main.py`. Check that everything works.
 
 **Step 3:** Build it  
 After checking everything, run `python -m PyInstaller rbeditor.spec` (if you get `no module named PyInstaller`, that means you didn't install PyInstaller yet). Wait about 20 seconds for it to compile, and you are done!
