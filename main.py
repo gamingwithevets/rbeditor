@@ -24,10 +24,13 @@ Now scram!''')
 import os
 import traceback
 
+username = 'gamingwithevets'
+reponame = 'rbeditor'
+
 import tkinter.messagebox
 try: import gui
 except ImportError:
-	err_text = f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{gui.username}/{gui.repo_name}/issues'
+	err_text = f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{reponame}/issues'
 	print(err_text)
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()

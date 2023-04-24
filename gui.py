@@ -54,8 +54,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '0.2.0'
-internal_version = 'v0.2.0'
+version = '0.2.1'
+internal_version = 'v0.2.1'
 prerelease = True
 
 license = 'MIT'
@@ -69,7 +69,7 @@ except ImportError:
 
 def report_error(self = None, exc = None, val = None, tb = None, term = True):
 	try: GUI.window.quit()
-	except Exception: pass
+	except AttributeError: pass
 
 	e = traceback.format_exc()
 	err_text = f'Whoops! An error has occurred.\n\n{e}\nIf this error persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
@@ -395,8 +395,6 @@ class GUI:
 		self.refreshing = True
 		self.reload_confirm_func = self.reload_confirm_default
 
-		self.context_menu_open = False
-
 		self.rbhandler = RBHandler(self)
 		self.itemproperties = ItemProperties(self)
 		self.dt_menu = DTMenu(self)
@@ -423,17 +421,16 @@ class GUI:
 		if os.path.exists(os.path.join(os.getcwd(), 'settings.ini')):
 			self.ini.read('settings.ini')
 			self.save_to_cwd = True
-		else:
-			# load normal settings
-			try: self.ini.read(f'{self.appdata_folder}\\settings.ini')
-			except Exception: pass
+		# load normal settings
+		else: self.ini.read(f'{self.appdata_folder}\\settings.ini')
 
 		sects = self.ini.sections()
 		if sects:
-			try: self.language_tk.set(self.ini['settings']['language'])
-			except Exception: pass
-			try: self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
-			except Exception: pass
+			if 'settings' in sects:
+				try: self.language_tk.set(self.ini['settings']['language'])
+				except Exception: pass
+				try: self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
+				except Exception: pass
 
 			if 'updater' in sects:
 				try: self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
@@ -491,9 +488,9 @@ class GUI:
 		self.save_settings()
 		self.reload()
 
-	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], f'{self.lang["msgbox_n_a_desc"]}{name}{self.lang["msgbox_n_a_desc2"]}')
+	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], self.lang['msgbox_n_a_desc'].format(name))
 
-	def refresh(self, load_func = False, custom_func = None):
+	def refresh(self, load_func = False):
 		self.refreshing = True
 
 		for w in self.window.winfo_children(): w.destroy()
@@ -502,9 +499,7 @@ class GUI:
 		self.window.protocol('WM_DELETE_WINDOW', self.quit)
 		self.reload_confirm_func = self.reload_confirm_default
 
-		if load_func:
-			if custom_func == None: self.main()
-			else: custom_func() 
+		if load_func: self.main()
 
 	def set_title(self, custom_str = None): self.window.title(f'{name} {version}{" - " + custom_str if custom_str != None else ""}')
 
@@ -531,9 +526,7 @@ class GUI:
 			self.window.quit()
 			sys.exit()
 
-	def playsound(self, event):
-		if self.context_menu_open: self.context_menu_open = False
-		else: winsound.PlaySound('.Default', winsound.SND_ASYNC)
+	def playsound(self, event): winsound.PlaySound('.Default', winsound.SND_ASYNC)
 
 	def draw_label(self, text, font = None, color = 'black', bg = None, side = 'top', anchor = 'center', recwidth = None, recheight = None, justify = None, master = None):
 		if master == None: master = self.window
@@ -822,7 +815,7 @@ class DTMenu:
 				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
 				tk.messagebox.showerror('Hmmm?', err_text)
-				self.quit()
+				sys.exit()
 
 			self.draw_menu()
 
@@ -847,6 +840,10 @@ class DTMenu:
 			self.text = self.gui.rbhandler.unicode_filter(self.text)
 			self.draw_menu()
 		else: return
+
+	def reset(self):
+		self.text = self.gui.default_date_format
+		self.draw_menu()
 
 	def save(self):
 		self.text = self.get_dt_entry() 
@@ -882,9 +879,12 @@ class DTMenu:
 
 		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.dt_win)
 		self.gui.draw_blank(master = self.dt_win)
-		ttk.Button(self.dt_win, text = self.gui.lang['discard'], command = self.discard).pack(side = 'bottom')
+		button_frame = tk.Frame(self.dt_win); button_frame.pack(side = 'bottom')
+		ttk.Button(button_frame, text = 'OK', command = self.save).pack(side = 'left')
+		ttk.Button(button_frame, text = self.gui.lang['discard'], command = self.discard).pack(side = 'right')
+		self.gui.draw_blank(side = 'bottom', master = self.dt_win)
+		ttk.Button(self.dt_win, text = self.gui.lang['reset'], command = self.reset).pack(side = 'bottom')
 		ttk.Button(self.dt_win, text = self.gui.lang['preview'], command = self.preview).pack(side = 'bottom')
-		ttk.Button(self.dt_win, text = 'OK', command = self.save).pack(side = 'bottom')
 
 		self.gui.draw_label(self.gui.lang['dtformat'], master = self.dt_win)
 
@@ -1257,7 +1257,7 @@ class Updater_GUI:
 				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
 				tk.messagebox.showerror('Hmmm?', err_text)
-				self.quit()
+				sys.exit()
 
 			if self.auto:
 				self.updater_win.withdraw()
@@ -1319,9 +1319,11 @@ class Updater_GUI:
 			self.updater_win.deiconify()
 			self.gui.set_title()
 		for w in self.updater_win.winfo_children(): w.destroy()
-		self.gui.draw_label(self.gui.lang['updater_newupdate'], master = self.updater_win)
-		self.gui.draw_label(f'{self.gui.lang["updater_currver"]}{self.gui.version}{self.gui.lang["updater_prerelease"] if prerelease else ""}', master = self.updater_win)
-		self.gui.draw_label(f'{self.gui.lang["updater_newver"]}{title}{self.gui.lang["updater_prerelease"] if prever else ""}', master = self.updater_win)
+		self.gui.draw_label(f'''\
+{self.gui.lang['updater_newupdate']}
+{self.gui.lang['updater_currver']}{self.gui.version}{self.gui.lang['updater_prerelease'] if prerelease else ''}
+{self.gui.lang['updater_newver']}{title}{self.gui.lang['updater_prerelease'] if prever else ''}\
+''', justify = 'center', master = self.updater_win)
 		ttk.Button(self.updater_win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
 		ttk.Button(self.updater_win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
 		
@@ -1545,7 +1547,7 @@ class FExplorerFrame(tk.Frame):
 		self.hovered = False
 		self.selected = False
 
-		self.label = tk.Label(self, text = text, anchor = 'nw')
+		self.label = ttk.Label(self, text = text, anchor = 'nw')
 		self.label.pack(side = 'left', anchor = 'nw')
 		self.label.bind('<Button-1>', self.select)
 		self.label.bind('<Button-3>', self.rclick_menu)
@@ -1553,7 +1555,7 @@ class FExplorerFrame(tk.Frame):
 		style = ttk.Style()
 		style.configure('Sel.TButton', background = self.select_color, height = 10)
 
-		self.blank = tk.Label(self, bg = self.select_color, anchor = 'sw')
+		self.blank = ttk.Label(self, background = self.select_color, anchor = 'sw')
 		self.button_frame = tk.Frame(self)
 		ttk.Button(self.button_frame, text = self.gui.lang['main_restore'], style = 'Sel.TButton', command = lambda e = item: self.gui.restore_item(e)).pack(side = 'left')
 		ttk.Button(self.button_frame, text = self.gui.lang['main_delete'], style = 'Sel.TButton', command = lambda e = item: self.gui.delete_item(e)).pack(side = 'right')
@@ -1586,31 +1588,33 @@ class FExplorerFrame(tk.Frame):
 		if not self.selected:
 			self.hovered = True
 			self.configure(bg = self.hover_color)
-			self.label.configure(bg = self.hover_color)
+			self.label.configure(background = self.hover_color)
 
 	def hover_leave(self, event):
 		if not self.selected:
 			self.hovered = False
 			self.configure(bg = self.norm_color)
-			self.label.configure(bg = self.norm_color)
+			self.label.configure(background = self.norm_color)
 
 	def select(self, event = None):
 		self.after(10, self.deselect_all)
 		self.selected = True
 		self.configure(bg = self.select_color, highlightbackground = self.highlight_color)
-		self.label.configure(bg = self.select_color)
+		self.label.configure(background = self.select_color)
 		self.blank.pack()
 		self.button_frame.pack(side = 'right')
 		self.bind('<Button-3>', self.rclick_menu)
 		self.gui.window.bind('<Button-1>', self.deselect_init)
 
 	def deselect_init(self, event):
-		if self.selected and self.winfo_containing(event.x_root, event.y_root) not in self.gui.rbhandler.get_all_childrens(self) + [self]: self.after(10, self.deselect)
+		if self.winfo_exists():
+			if self.selected and self.winfo_containing(event.x_root, event.y_root) not in self.gui.rbhandler.get_all_childrens(self) + [self]: self.after(10, self.deselect)
+		else: self.gui.window.unbind('<Button-1>')
 
 	def deselect(self, event = None):
 		self.selected = False
 		self.configure(bg = self.norm_color)
-		self.label.configure(bg = self.norm_color)
+		self.label.configure(background = self.norm_color)
 		self.button_frame.pack_forget()
 		self.blank.pack_forget()
 		self.unbind('<Button-3>')
@@ -1622,7 +1626,7 @@ class FExplorerFrame(tk.Frame):
 				if w.selected:
 					w.selected = False
 					w.configure(bg = self.norm_color)
-					w.label.configure(bg = self.norm_color)
+					w.label.configure(background = self.norm_color)
 					w.button_frame.pack_forget()
 					w.blank.pack_forget()
 					w.unbind('<Button-3>')
@@ -1637,4 +1641,3 @@ class ThreadWithResult(threading.Thread):
 	def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
 		def function(): self.result = target(*args, **kwargs)
 		super().__init__(group=group, target=function, name=name, daemon=daemon)
-		
