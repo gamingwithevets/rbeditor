@@ -1,7 +1,7 @@
 import sys
 import os
 if os.name != 'nt':
-	print('This program is only available for Windows NT operating systems. Sorry!')
+	print('ERROR: This application must be run on Windows NT 6.0 or higher.')
 	sys.exit()
 	
 python_requirement = (3, 6, 0)

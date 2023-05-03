@@ -7,7 +7,7 @@ import os
 import platform
 import traceback
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
 import tkinter.font
 import tkinter.messagebox
 import tkinter.filedialog
@@ -26,6 +26,7 @@ import re
 import glob
 import math
 import time
+import json
 import ctypes
 import locale
 import random
@@ -41,6 +42,7 @@ import subprocess
 import webbrowser
 import collections
 import configparser
+import urllib.request
 from queue import Queue
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
@@ -54,8 +56,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '0.2.1'
-internal_version = 'v0.2.1'
+version = '1.0.0-dev1'
+internal_version = 'v1.0.0-dev1'
 prerelease = True
 
 license = 'MIT'
@@ -156,7 +158,8 @@ class RBHandler:
 			except Exception: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
 
 	# https://stackoverflow.com/a/22325767 (modified)
-	def get_os_version(self):
+	@staticmethod
+	def get_os_version():
 		os_version = OSVERSIONINFOEXW()
 		os_version.dwOSVersionInfoSize = ctypes.sizeof(os_version)
 		retcode = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version))
@@ -165,7 +168,8 @@ class RBHandler:
 
 		return os_version.dwMajorVersion, os_version.dwMinorVersion
 
-	def get_drives(self):
+	@staticmethod
+	def get_drives():
 		drives = []
 		for drive in string.ascii_uppercase:
 			if win32file.GetDriveType(drive+':') == win32file.DRIVE_FIXED: drives.append(drive)
@@ -177,7 +181,8 @@ class RBHandler:
 		time_utc = time_utc.replace(tzinfo = timezone.utc)
 		return time_utc.astimezone(self.gui.tz)
 
-	def dt_to_filetime(self, dt):
+	@staticmethod
+	def dt_to_filetime(dt):
 		ft = 116444736000000000 + int((dt - datetime(1970, 1, 1, tzinfo = timezone.utc)).total_seconds() * 10000000)
 		return ft
 
@@ -342,15 +347,6 @@ class GUI:
 
 		self.window = window
 
-		try:
-			import requests
-			global requests
-			self.updates = True
-		except ImportError:
-			self.updates = False
-			print('ERROR: No "requests" module found! Update checking disabled.')
-			tk.messagebox.showerror('Error', 'No "requests" module found! Update checking disabled.')
-
 		self.temp_path = temp_path
 
 		self.display_w = 800
@@ -358,6 +354,8 @@ class GUI:
 
 		self.dt_win_open = False
 		self.updater_win_open = False
+		self.locale_chooser_open = False
+		self.dt_picker_open = False
 
 		tk_font = tk.font.nametofont('TkDefaultFont').actual()
 		self.font_name = tk_font['family']
@@ -369,19 +367,270 @@ class GUI:
 		self.init_protocols()
 
 		# default settings
+		self.rbin_view_default = 'felike'
+		self.rbin_view_tk = tk.StringVar(); self.rbin_view_tk.set(self.rbin_view_default)
+		self.rbin_view = self.rbin_view_tk.get()
+		self.rbin_view_options = ['felike', 'legacy']
+
 		self.default_date_format = '%c'
 		self.date_format = self.default_date_format
 		self.tz = datetime.now(timezone.utc).astimezone().tzinfo
 
 		self.languages = {
-		'en_US': 'English',
-		'ja_JP': '日本語',
-		'vi_VN': 'Tiếng Việt',
+		'en-US': 'English',
+		'ja-JP': '日本語',
+		'vi-VN': 'Tiếng Việt',
 		}
 
 		self.language_tk = tk.StringVar(); self.language_tk.set('system')
 		self.language = ''
 		self.system_language_unavailable = False
+
+		self.locales = [
+		'af',
+		'af-ZA',
+		'ar',
+		'ar-AE',
+		'ar-BH',
+		'ar-DZ',
+		'ar-EG',
+		'ar-IQ',
+		'ar-JO',
+		'ar-KW',
+		'ar-LB',
+		'ar-LY',
+		'ar-MA',
+		'ar-OM',
+		'ar-QA',
+		'ar-SA',
+		'ar-SY',
+		'ar-TN',
+		'ar-YE',
+		'az',
+		'az-AZ',
+		'az-AZ',
+		'be',
+		'be-BY',
+		'bg',
+		'bg-BG',
+		'bs-BA',
+		'ca',
+		'ca-ES',
+		'cs',
+		'cs-CZ',
+		'cy',
+		'cy-GB',
+		'da',
+		'da-DK',
+		'de',
+		'de-AT',
+		'de-CH',
+		'de-DE',
+		'de-LI',
+		'de-LU',
+		'dv',
+		'dv-MV',
+		'el',
+		'el-GR',
+		'en',
+		'en-AU',
+		'en-BZ',
+		'en-CA',
+		'en-CB',
+		'en-GB',
+		'en-IE',
+		'en-JM',
+		'en-NZ',
+		'en-PH',
+		'en-TT',
+		'en-US',
+		'en-ZA',
+		'en-ZW',
+		'eo',
+		'es',
+		'es-AR',
+		'es-BO',
+		'es-CL',
+		'es-CO',
+		'es-CR',
+		'es-DO',
+		'es-EC',
+		'es-ES',
+		'es-ES',
+		'es-GT',
+		'es-HN',
+		'es-MX',
+		'es-NI',
+		'es-PA',
+		'es-PE',
+		'es-PR',
+		'es-PY',
+		'es-SV',
+		'es-UY',
+		'es-VE',
+		'et',
+		'et-EE',
+		'eu',
+		'eu-ES',
+		'fa',
+		'fa-IR',
+		'fi',
+		'fi-FI',
+		'fo',
+		'fo-FO',
+		'fr',
+		'fr-BE',
+		'fr-CA',
+		'fr-CH',
+		'fr-FR',
+		'fr-LU',
+		'fr-MC',
+		'gl',
+		'gl-ES',
+		'gu',
+		'gu-IN',
+		'he',
+		'he-IL',
+		'hi',
+		'hi-IN',
+		'hr',
+		'hr-BA',
+		'hr-HR',
+		'hu',
+		'hu-HU',
+		'hy',
+		'hy-AM',
+		'id',
+		'id-ID',
+		'is',
+		'is-IS',
+		'it',
+		'it-CH',
+		'it-IT',
+		'ja',
+		'ja-JP',
+		'ka',
+		'ka-GE',
+		'kk',
+		'kk-KZ',
+		'kn',
+		'kn-IN',
+		'ko',
+		'ko-KR',
+		'kok',
+		'kok-IN',
+		'ky',
+		'ky-KG',
+		'lt',
+		'lt-LT',
+		'lv',
+		'lv-LV',
+		'mi',
+		'mi-NZ',
+		'mk',
+		'mk-MK',
+		'mn',
+		'mn-MN',
+		'mr',
+		'mr-IN',
+		'ms',
+		'ms-BN',
+		'ms-MY',
+		'mt',
+		'mt-MT',
+		'nb',
+		'nb-NO',
+		'nl',
+		'nl-BE',
+		'nl-NL',
+		'nn-NO',
+		'ns',
+		'ns-ZA',
+		'pa',
+		'pa-IN',
+		'pl',
+		'pl-PL',
+		'ps',
+		'ps-AR',
+		'pt',
+		'pt-BR',
+		'pt-PT',
+		'qu',
+		'qu-BO',
+		'qu-EC',
+		'qu-PE',
+		'ro',
+		'ro-RO',
+		'ru',
+		'ru-RU',
+		'sa',
+		'sa-IN',
+		'se',
+		'se-FI',
+		'se-FI',
+		'se-FI',
+		'se-NO',
+		'se-NO',
+		'se-NO',
+		'se-SE',
+		'se-SE',
+		'se-SE',
+		'sk',
+		'sk-SK',
+		'sl',
+		'sl-SI',
+		'sq',
+		'sq-AL',
+		'sr-BA',
+		'sr-BA',
+		'sr-SP',
+		'sr-SP',
+		'sv',
+		'sv-FI',
+		'sv-SE',
+		'sw',
+		'sw-KE',
+		'syr',
+		'syr-SY',
+		'ta',
+		'ta-IN',
+		'te',
+		'te-IN',
+		'th',
+		'th-TH',
+		'tl',
+		'tl-PH',
+		'tn',
+		'tn-ZA',
+		'tr',
+		'tr-TR',
+		'tt',
+		'tt-RU',
+		'ts',
+		'uk',
+		'uk-UA',
+		'ur',
+		'ur-PK',
+		'uz',
+		'uz-UZ',
+		'uz-UZ',
+		'vi',
+		'vi-VN',
+		'xh',
+		'xh-ZA',
+		'zh',
+		'zh-CN',
+		'zh-HK',
+		'zh-MO',
+		'zh-SG',
+		'zh-TW',
+		'zu',
+		'zu-ZA',
+		]
+		self.locale_default = 'en-US'
+		self.locale_tk = tk.StringVar(); self.locale_tk.set(self.locale_default)
+		self.locale = self.locale_tk.get()
+		self.locale_option = tk.StringVar(); self.locale_option.set('lang')
 
 		self.auto_check_updates = tk.BooleanVar(); self.auto_check_updates.set(True)
 		self.check_prerelease_version = tk.BooleanVar(); self.check_prerelease_version.set(False)
@@ -395,12 +644,14 @@ class GUI:
 		self.refreshing = True
 		self.reload_confirm_func = self.reload_confirm_default
 
+		self.context_menu_open = False
+
 		self.rbhandler = RBHandler(self)
 		self.itemproperties = ItemProperties(self)
 		self.dt_menu = DTMenu(self)
 		self.new_item = NewItem(self)
-		self.updater = Updater() # the updater does not need the GUI class as it runs independently of it.
-		self.updater_gui = Updater_GUI(self)
+		self.locale_chooser = LocaleChooser(self)
+		self.updater_gui = UpdaterGUI(self)
 
 		self.unsupported_tcl = False
 		if sys.version_info < (3, 7, 6):
@@ -427,9 +678,24 @@ class GUI:
 		sects = self.ini.sections()
 		if sects:
 			if 'settings' in sects:
-				try: self.language_tk.set(self.ini['settings']['language'])
+				try: self.language_tk.set(self.ini['settings']['language'].replace('_', '-'))
+				except Exception: pass
+				try:
+					self.locale_tk.set(self.ini['settings']['locale'])
+					if self.locale_tk.get() not in self.locales: self.locale_tk.set(self.locale_default)
+					self.locale = self.locale_tk.get()
+				except Exception: pass
+				try:
+					self.locale_option.set(self.ini['settings']['locale_option'])
+					if self.locale_option.get() not in ['lang', 'system', 'custom']: self.locale_option.set('lang')
+					self.prev_locale_option = self.locale_option.get()
 				except Exception: pass
 				try: self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
+				except Exception: pass
+				try:
+					self.rbin_view_tk.set(self.ini['settings']['rbin_view'])
+					if self.rbin_view_tk.get() not in self.rbin_view_options: self.rbin_view_tk.set(self.rbin_view_default)
+					self.rbin_view = self.rbin_view_tk.get()
 				except Exception: pass
 
 			if 'updater' in sects:
@@ -439,13 +705,17 @@ class GUI:
 				except Exception: pass
 
 		self.set_lang()
+		self.set_locale()
 		self.save_settings()
 
 	def save_settings(self):
 		# settings are set individually to retain compatibility between versions
 		self.ini['settings'] = {}
 		self.ini['settings']['language'] = self.language_tk.get()
+		self.ini['settings']['locale'] = self.locale_tk.get()
+		self.ini['settings']['locale_option'] = self.locale_option.get()
 		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%').encode('unicode-escape').decode()
+		self.ini['settings']['rbin_view'] = self.rbin_view_tk.get()
 
 		self.ini['updater'] = {}
 		self.ini['updater']['auto_check_updates'] = str(self.auto_check_updates.get())
@@ -458,35 +728,43 @@ class GUI:
 		with open(f'{self.appdata_folder}\\settings.ini', 'w') as f: self.ini.write(f)
 
 	def get_lang(self):
-		slang = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()]
+		slang = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()].replace('_', '-')
 		if slang in self.languages: return slang
 		else:
 			self.system_language_unavailable = True
-			return 'en_US'
+			return 'en-US'
 
-	def set_lang(self):
+	def set_lang(self, change = False):
 		if self.language_tk.get() == 'system':
 			self.language = self.get_lang()
 			if self.system_language_unavailable:
-				self.language_tk.set('en_US')
+				self.language_tk.set('en-US')
 				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English.')
 		else:
 			self.language = self.language_tk.get()
 			if self.language_tk.get() not in self.languages:
-				self.language_tk.set('en_US')
+				self.language_tk.set('en-US')
 				self.save_settings()
 
-		locale.setlocale(locale.LC_ALL, self.language.replace('_', '-'))
+		if not change:
+			self.lang = lang.lang['en-US'].copy()
+			if self.language in lang.lang:
+				lang_new = lang.lang[self.language].copy()
+				for key in lang_new: self.lang[key] = lang_new[key]
 
-		self.lang = lang.lang['en_US'].copy()
-		if self.language in lang.lang:
-			lang_new = lang.lang[self.language].copy()
-			for key in lang_new: self.lang[key] = lang_new[key]
+	def set_locale(self):
+		lo = self.locale_option.get()
+		if lo == 'lang': locale.setlocale(locale.LC_ALL, self.language)
+		elif lo == 'system': locale.setlocale(locale.LC_ALL, '')
+		elif lo == 'custom': locale.setlocale(locale.LC_ALL, self.locale)
+
+	def set_prev_locale_option(self):
+		self.prev_locale_option = self.locale_option.get()
+		self.setting_change()
 
 	def change_lang(self):
-		self.set_lang()
-		self.save_settings()
-		self.reload()
+		self.set_lang(True)
+		self.setting_change()
 
 	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], self.lang['msgbox_n_a_desc'].format(name))
 
@@ -503,13 +781,28 @@ class GUI:
 
 	def set_title(self, custom_str = None): self.window.title(f'{name} {version}{" - " + custom_str if custom_str != None else ""}')
 
+	# no tab! (sorry keyboard users...)
+	@staticmethod
+	def disable_all_widgets():
+		def set_takefocus_false(widget_class):
+			orig_init = widget_class.__init__
+			def new_init(self, *args, **kwargs):
+				orig_init(self, *args, **kwargs)
+				self.config(takefocus = False)
+			widget_class.__init__ = new_init
+
+		set_takefocus_false(tk.Widget)
+		set_takefocus_false(ttk.Widget)
+
 	def init_window(self):
 		self.window.geometry(f'{self.display_w}x{self.display_h}')
-		#self.window.unbind_all('<<NextWindow>>') # disable TAB focus (Keyboard functionality is being developed so this is disabled)
 		self.window.bind('<F5>', self.reload_confirm)
 		self.window.bind('<F12>', self.version_details)
 		self.window.bind('<Button-3>', self.playsound)
 		self.window.option_add('*tearOff', False)
+		
+		self.disable_all_widgets()
+
 		self.set_title()
 		try: self.window.iconbitmap(f'{self.temp_path}\\icon.ico')
 		except tk.TclError:
@@ -522,11 +815,16 @@ class GUI:
 		self.window.protocol('WM_DELETE_WINDOW', self.quit)
 
 	def quit(self):
-		if not self.dt_win_open and not self.updater_win_open:
-			self.window.quit()
-			sys.exit()
+		if not any([
+			self.dt_win_open,
+			self.updater_win_open,
+			self.locale_chooser_open,
+			self.dt_picker_open,
+			]): sys.exit()
 
-	def playsound(self, event): winsound.PlaySound('.Default', winsound.SND_ASYNC)
+	def playsound(self, event):
+		if self.context_menu_open: self.context_menu_open = False
+		else: winsound.PlaySound('.Default', winsound.SND_ASYNC)
 
 	def draw_label(self, text, font = None, color = 'black', bg = None, side = 'top', anchor = 'center', recwidth = None, recheight = None, justify = None, master = None):
 		if master == None: master = self.window
@@ -596,7 +894,6 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 ''')
 
 	def reload(self):
-		tk.messagebox.showwarning(self.lang['msgbox_warning'], self.lang['msgbox_reload'])
 		self.itemproperties.show_advanced = False
 		self.refresh(True)
 
@@ -604,6 +901,11 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		if self.reload_confirm_func(): self.reload()
 
 	def reload_confirm_default(self): return tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_reload_confirm'], icon = 'warning')
+
+	def setting_change(self):
+		self.save_settings()
+		self.menubar() # update the menubar
+		tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_reload_next_reboot'])
 
 	def menubar(self):
 		menubar = tk.Menu()
@@ -616,6 +918,11 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		menubar.add_cascade(label = self.lang['menubar_rbin'], menu = rbin_menu)
 
 		settings_menu = tk.Menu(menubar)
+
+		rbin_view_menu =  tk.Menu(menubar)
+		for i in self.rbin_view_options: rbin_view_menu.add_radiobutton(label = self.lang[f'menubar_settings_rbin_view_{i}'], variable = self.rbin_view_tk, value = i, command = self.setting_change)
+		settings_menu.add_cascade(label = self.lang['menubar_settings_rbin_view'], menu = rbin_view_menu)
+		
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.dt_menu.init_window)
 
 		self.lang_menu = tk.Menu(settings_menu)
@@ -626,6 +933,12 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		self.ena_dis_lang()
 		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
 
+		locale_menu = tk.Menu(settings_menu)
+		locale_menu.add_radiobutton(label = self.lang['menubar_settings_locale_lang'], variable = self.locale_option, value = 'lang', command = self.set_prev_locale_option)
+		locale_menu.add_radiobutton(label = self.lang['menubar_settings_locale_system'], variable = self.locale_option, value = 'system', command = self.set_prev_locale_option)
+		locale_menu.add_radiobutton(label = f'{self.lang["menubar_settings_locale_custom"]}{self.lang["menubar_settings_locale_custom2"].format(self.locale_tk.get()) if self.locale_option.get() == "custom" else ""}', variable = self.locale_option, value = 'custom', command = self.locale_chooser.init_window)
+		settings_menu.add_cascade(label = self.lang['menubar_settings_locale'], menu = locale_menu)
+
 		updater_settings_menu = tk.Menu(settings_menu)
 		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_auto'], variable = self.auto_check_updates, command = self.save_settings)
 		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_prerelease'], variable = self.check_prerelease_version, command = self.save_settings)
@@ -634,7 +947,7 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
 		help_menu = tk.Menu(menubar)
-		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.updater_gui.init_window, state = 'normal' if self.updates else 'disabled')
+		help_menu.add_command(label = self.lang['menubar_help_update'], command = self.updater_gui.init_window)
 		help_menu.add_command(label = self.lang['menubar_help_about'].format(name), command = self.about_menu)
 		menubar.add_cascade(label = self.lang['help'], menu = help_menu)
 
@@ -645,9 +958,6 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 			# try-except nest used in case of an unused language in language_names
 			try: self.lang_menu.entryconfig(i, state = 'normal')
 			except Exception: pass
-
-		if self.language_tk.get() == 'system': self.lang_menu.entryconfig(self.lang['menubar_settings_language_system'], state = 'disabled')
-		else: self.lang_menu.entryconfig(self.languages[self.language], state = 'disabled')
 
 	def main(self):
 		try: self.draw_label(self.lang['title'], font = self.bold_font)
@@ -685,9 +995,21 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 			frame = VerticalScrolledFrame(self.window)
 			frame.pack(fill = 'both', expand = True)
 
-			for item in self.bin_items:
-				item_frame = FExplorerFrame(frame.interior, self, item, f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])))
-				item_frame.pack(fill = 'both')
+			if self.rbin_view == 'legacy':
+				# copied over from v0.1.2 tag
+				for item in self.bin_items:
+					item_frame = tk.Frame(frame.interior)
+					ttk.Button(item_frame, text = self.lang['main_properties'], command = lambda e = item: self.itemproperties.show_properties(e)).pack(side = 'right')
+					ttk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
+					ttk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
+					ttk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
+					self.draw_label(f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])), side = 'left', anchor = 'midleft', master = item_frame)
+					item_frame.pack(fill = 'both')			
+			# fallback/default view
+			else:
+				for item in self.bin_items:
+					item_frame = FExplorerFrame(frame.interior, self, item, f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])))
+					item_frame.pack(fill = 'both')
 		else:
 			ttk.Button(text = self.lang['main_new_item'], command = self.new_item.create_item).pack()
 			self.draw_blank()
@@ -770,7 +1092,7 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 				else: self.refresh(True)
 
 		if os.path.exists(restore_path) and os.path.isdir(restore_path) == item_info['isdir']:
-			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], f'{self.lang["msgbox_overwrite1"]}"{ogname}"{self.lang["msgbox_overwrite2"]}', icon = 'warning'):
+			if not tk.messagebox.askyesno(self.lang['msgbox_warning'], self.lang['msgbox_overwrite'].format(ogname), icon = 'warning'):
 				if no_refresh: return
 				else: self.refresh(True)
 
@@ -798,19 +1120,19 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 class DTMenu:
 	def __init__(self, gui):
 		self.gui = gui
-		self.preview_date_time = datetime(2007, 1, 30, 12, 34, 56, tzinfo = timezone(timedelta(hours = 7)))
+		self.preview_date_time = datetime(2007, 1, 30, 12, 34, 56, 123456, tzinfo = timezone(timedelta(hours = 7)))
 
 	def init_window(self):
 		if not self.gui.dt_win_open:
 			self.gui.dt_win_open = True
 			self.dt_preview = False
 
-			self.dt_win = tk.Toplevel(self.gui.window)
-			self.dt_win.geometry('500x500')
-			self.dt_win.resizable(False, False)
-			self.dt_win.protocol('WM_DELETE_WINDOW', self.quit)
-			self.dt_win.title(self.gui.lang['title_dtformat'])
-			try: self.dt_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
+			self.win = tk.Toplevel(self.gui.window)
+			self.win.geometry('500x500')
+			self.win.resizable(False, False)
+			self.win.protocol('WM_DELETE_WINDOW', self.quit)
+			self.win.title(self.gui.lang['title_dtformat'])
+			try: self.win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
 			except tk.TclError:
 				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
@@ -819,13 +1141,13 @@ class DTMenu:
 
 			self.draw_menu()
 
-		self.dt_win.focus()
-		self.dt_win.grab_set()
-		self.dt_win.mainloop()
+			self.win.focus()
+			self.win.grab_set()
+			self.win.mainloop()
 
 	def quit(self):
-		self.dt_win.grab_release()
-		self.dt_win.destroy()
+		self.win.grab_release()
+		self.win.destroy()
 		self.gui.dt_win_open = False
 
 	def discard(self):
@@ -854,7 +1176,7 @@ class DTMenu:
 					self.gui.date_format = self.gui.rbhandler.unicode_filter(self.text)
 					self.gui.save_settings()
 					self.quit()
-					self.gui.reload()
+					self.gui.setting_change()
 			else: self.quit()
 		else: return
 
@@ -875,32 +1197,32 @@ class DTMenu:
 		tk.messagebox.showinfo(self.gui.lang['help'], self.gui.lang['dtformat_guide'])
 
 	def draw_menu(self):
-		for w in self.dt_win.winfo_children(): w.destroy()
+		for w in self.win.winfo_children(): w.destroy()
 
-		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.dt_win)
-		self.gui.draw_blank(master = self.dt_win)
-		button_frame = tk.Frame(self.dt_win); button_frame.pack(side = 'bottom')
+		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.win)
+		self.gui.draw_blank(master = self.win)
+		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
 		ttk.Button(button_frame, text = 'OK', command = self.save).pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['discard'], command = self.discard).pack(side = 'right')
-		self.gui.draw_blank(side = 'bottom', master = self.dt_win)
-		ttk.Button(self.dt_win, text = self.gui.lang['reset'], command = self.reset).pack(side = 'bottom')
-		ttk.Button(self.dt_win, text = self.gui.lang['preview'], command = self.preview).pack(side = 'bottom')
+		self.gui.draw_blank(side = 'bottom', master = self.win)
+		ttk.Button(self.win, text = self.gui.lang['reset'], command = self.reset).pack(side = 'bottom')
+		ttk.Button(self.win, text = self.gui.lang['preview'], command = self.preview).pack(side = 'bottom')
 
-		self.gui.draw_label(self.gui.lang['dtformat'], master = self.dt_win)
+		self.gui.draw_label(self.gui.lang['dtformat'], master = self.win)
 
-		scroll = ttk.Scrollbar(self.dt_win, orient = 'horizontal')
-		self.dt_entry = ttk.Entry(self.dt_win, width = self.dt_win.winfo_width(), justify = 'center', xscrollcommand = scroll.set)
+		scroll = ttk.Scrollbar(self.win, orient = 'horizontal')
+		self.dt_entry = ttk.Entry(self.win, width = self.win.winfo_width(), justify = 'center', xscrollcommand = scroll.set)
 		try: self.dt_entry.insert(0, self.gui.rbhandler.unicode_filter(self.text))
 		except AttributeError: self.dt_entry.insert(0, self.gui.date_format)
 		self.dt_entry.pack()
 		scroll.config(command = self.dt_entry.xview)
 		scroll.pack(fill = 'x')
-		ttk.Button(self.dt_win, text = self.gui.lang['help'], command = self.help).pack()
+		ttk.Button(self.win, text = self.gui.lang['help'], command = self.help).pack()
 
 		if self.dt_preview:
 			if self.gui.unsupported_tcl: tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unicode'])
 			# https://stackoverflow.com/a/49791321
-			else: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.gui.rbhandler.format_date(self.preview_date_time, self.text)}', justify = 'center', master = self.dt_win)
+			else: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.gui.rbhandler.format_date(self.preview_date_time, self.text)}', justify = 'center', master = self.win)
 
 
 class ItemProperties:
@@ -1024,6 +1346,8 @@ class NewItem:
 		self.return_mode = False
 		self.discarded = False
 
+		self.dt_picker = DTPicker(self.gui)
+
 	def create_item(self):
 		version = '1' if self.gui.rbhandler.get_os_version() <= (6, 3) else '2'
 		path = 'C:\\' + self.gui.lang['new_item_name']
@@ -1090,10 +1414,14 @@ class NewItem:
 						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_path"]}: {self.gui.lang["msgbox_blank"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
 						break
 
+					if not os.path.isabs(path):
+						tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path_4"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
+						break
+
 					path_drive, path_nodr = os.path.splitdrive(path)
 
 					if path_drive != '':
-						if path_drive[0] not in self.gui.rbhandler.get_drives():
+						if path_drive[0].upper() not in self.gui.rbhandler.get_drives():
 							tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'{self.gui.lang["new_item_invalid_path_3"]}\n\n{self.gui.lang["new_item_hacker_mode_note"]}')
 							break
 
@@ -1147,7 +1475,7 @@ class NewItem:
 			self.hacker_mode_TEMP = tk.BooleanVar(); self.hacker_mode_TEMP.set(hacker_mode)
 			self.no_terminator_TEMP = tk.BooleanVar(); self.no_terminator_TEMP.set(no_terminator)
 
-			deldate_TEMP_str = self.deldate_TEMP.astimezone().strftime(self.gui.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
+			deldate_TEMP_str = self.deldate_TEMP.astimezone(self.gui.tz).strftime(self.gui.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')
 
 			self.gui.refresh()
 			self.gui.window.protocol('WM_DELETE_WINDOW', lambda: self.discard(True))
@@ -1181,7 +1509,7 @@ class NewItem:
 
 			deldate_frame = tk.Frame()
 			self.gui.draw_label(self.gui.lang['deldate'], font = self.gui.bold_font, side = 'left', master = deldate_frame)
-			ttk.Button(deldate_frame, text = self.gui.lang['edit'], command = self.datetime_editor).pack(side = 'right')
+			ttk.Button(deldate_frame, text = self.gui.lang['edit'], command = self.dt_picker.init_window).pack(side = 'right')
 			self.gui.draw_label(self.gui.rbhandler.unicode_filter(deldate_TEMP_str), side = 'right', master = deldate_frame)
 			deldate_frame.pack(fill = 'x')
 
@@ -1211,9 +1539,11 @@ class NewItem:
 
 	def set_return(self): self.item_maker(True, self.version_entry.get(), self.path_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP, self.hacker_mode_TEMP.get(), self.no_terminator_TEMP.get())
 
-	def set_hacker(self, value): self.item_maker(False, self.version_entry.get(), self.path_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP, value, self.no_terminator_TEMP.get())
+	def set_hacker(self, value):
+		self.hacker_mode_TEMP.set(value)
+		self.reload()
 
-	def datetime_editor(self): self.gui.n_a()
+	def reload(self): self.item_maker(False, self.version_entry.get(), self.path_entry.get(), self.is_folder_TEMP.get(), self.size_entry.get(), self.deldate_TEMP, self.random_str_TEMP, self.edit_mode_TEMP, self.hacker_mode_TEMP.get(), self.no_terminator_TEMP.get())
 
 	def validate_text(self, text, blacklist):
 		for char in text:
@@ -1233,13 +1563,142 @@ class NewItem:
 		self.gui.window.protocol('WM_DELETE_WINDOW', self.gui.quit)
 		self.gui.refresh(True)
 
-# most code copied from DTMenu class
-class Updater_GUI:
+class LocaleChooser:
+	def __init__(self, gui): self.gui = gui
+
+	def init_window(self):
+		if not self.gui.locale_chooser_open:
+			self.gui.locale_chooser_open = True
+
+			self.win = tk.Toplevel(self.gui.window)
+			self.win.geometry('300x120')
+			self.win.resizable(False, False)
+			self.win.protocol('WM_DELETE_WINDOW', self.quit)
+			self.win.title(self.gui.lang['locale_chooser_title'])
+			try: self.win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
+			except tk.TclError:
+				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
+				print(err_text)
+				tk.messagebox.showerror('Hmmm?', err_text)
+				sys.exit()
+
+			self.draw_menu()
+			
+			self.win.focus()
+			self.win.grab_set()
+			self.win.mainloop()
+
+	def quit(self):
+		self.win.grab_release()
+		self.win.destroy()
+		self.gui.locale_chooser_open = False
+
+	def save(self):
+		self.quit()
+		self.gui.setting_change()
+
+	def cancel(self):
+		self.gui.locale_tk.set(self.old_locale)
+		self.gui.locale_option.set(self.gui.prev_locale_option)
+		self.quit()
+
+	def draw_menu(self):
+		for w in self.win.winfo_children(): w.destroy()
+
+		self.old_locale = self.gui.locale_tk.get()
+
+		self.gui.draw_label(self.gui.lang['locale_chooser_choose'], justify = 'center', master = self.win)
+		ttk.Combobox(self.win, textvariable = self.gui.locale_tk, values = self.gui.locales).pack()
+		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
+		ttk.Button(button_frame, text = 'OK', command = self.save).pack(side = 'left')
+		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.cancel).pack(side = 'right')
+
+class DTPicker:
+	def __init__(self, gui):
+		self.gui = gui
+
+		self.type = 'ft'
+		self.types = ['ft']
+		self.types_names = ['FILETIME']
+		self.type_name = tk.StringVar(); self.type_name.set(self.types_names[self.types.index(self.type)])
+
+	def init_window(self):
+		if not self.gui.dt_picker_open:
+			self.gui.dt_picker_open = True
+
+			self.win = tk.Toplevel(self.gui.window)
+			self.win.geometry('400x400')
+			self.win.resizable(False, False)
+			self.win.protocol('WM_DELETE_WINDOW', self.quit)
+			self.win.title(self.gui.lang['dtpicker_title'])
+			try: self.win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
+			except tk.TclError:
+				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
+				print(err_text)
+				tk.messagebox.showerror('Hmmm?', err_text)
+				sys.exit()
+
+			self.draw_menu()
+			
+			self.win.focus()
+			self.win.grab_set()
+			self.win.mainloop()
+
+	def quit(self):
+		self.win.grab_release()
+		self.win.destroy()
+		self.gui.dt_picker_open = False
+
+	def draw_menu(self):
+		for w in self.win.winfo_children():
+			if w not in [self.type_frame, self.header_frame]: w.destroy()
+
+		self.header_frame = tk.Frame(self.win); self.header_frame.pack()
+		self.gui.draw_label(self.gui.lang['dtpicker_title'], font = self.gui.bold_font, master = self.header_frame)
+		self.gui.draw_blank(master = self.header_frame)
+		self.type_frame = tk.Frame(self.win); self.type_frame.pack()
+		self.gui.draw_label(self.gui.lang['dtpicker_type'] + ' ', side = 'left', master = self.type_frame)
+		ttk.Combobox(self.type_frame, textvariable = self.type_name, values = self.types_names).pack()
+		
+		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
+		self.ok_button = ttk.Button(button_frame, text = 'OK', command = lambda: tk.messagebox.showerror(*[self.gui.lang['qmark']]*2)); self.ok_button.pack(side = 'left')
+		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'right')
+
+		self.ft_type()
+
+	def ft_type(self):
+		self.gui.draw_blank(master = self.win)
+		self.gui.draw_label(self.gui.lang['dtpicker_ft_header'], master = self.win)
+		self.ft_entry = ttk.Entry(self.win, width = self.win.winfo_width(), justify = 'center')
+		self.ft_entry.insert(0, str(self.gui.rbhandler.dt_to_filetime(self.gui.new_item.deldate_TEMP)))
+		self.ft_entry.pack()
+		self.gui.draw_blank(master = self.win)
+		self.gui.draw_label(self.gui.lang['dtpicker_ft_notes'], justify = 'center', master = self.win)
+
+		self.ok_button.config(command = self.ft_save)
+
+	def ft_save(self):
+		try: ft_val = int(self.ft_entry.get())
+		except ValueError:
+			tk.messagebox.showerror(self.gui.lang['msgbox_error'], 'FILETIME must be an integer!')
+			return
+
+		try:
+			self.gui.new_item.deldate_TEMP = self.gui.rbhandler.filetime_to_dt(ft_val)
+			self.quit()
+			self.gui.new_item.reload()
+		except OverflowError:
+			tk.messagebox.showerror(self.gui.lang['msgbox_error'], 'FILETIME not in valid range!')
+			return
+
+class UpdaterGUI:
 	def __init__(self, gui):
 		self.gui = gui
 
 		self.auto = False
 		self.after_ms = 100
+
+		self.updater = Updater()
 
 	def init_window(self, auto = False):
 		if not self.gui.updater_win_open:
@@ -1247,12 +1706,12 @@ class Updater_GUI:
 
 			if auto: self.auto = True
 
-			self.updater_win = tk.Toplevel(self.gui.window)
-			self.updater_win.geometry('300x120')
-			self.updater_win.resizable(False, False)
-			self.updater_win.protocol('WM_DELETE_WINDOW', self.quit)
-			self.updater_win.title(self.gui.lang['updater_title'])
-			try: self.updater_win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
+			self.win = tk.Toplevel(self.gui.window)
+			self.win.geometry('300x120')
+			self.win.resizable(False, False)
+			self.win.protocol('WM_DELETE_WINDOW', self.quit)
+			self.win.title(self.gui.lang['updater_title'])
+			try: self.win.iconbitmap(f'{self.gui.temp_path}\\icon.ico')
 			except tk.TclError:
 				err_text = f'Whoops! The icon file "icon.ico" is required.\nCan you make sure the file is in "{self.gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{repo_name}/issues'
 				print(err_text)
@@ -1260,32 +1719,32 @@ class Updater_GUI:
 				sys.exit()
 
 			if self.auto:
-				self.updater_win.withdraw()
+				self.win.withdraw()
 				self.gui.set_title(self.gui.lang['updater_checking'])
-			self.updater_win.focus()
-			self.updater_win.grab_set()
+			self.win.focus()
+			self.win.grab_set()
 			self.main()
 
 	def quit(self):
-		self.updater_win.grab_release()
-		self.updater_win.destroy()
+		self.win.grab_release()
+		self.win.destroy()
 		self.gui.updater_win_open = False
 		if self.auto:
 			self.auto = False
 			self.gui.main()
 
 	def main(self):
-		self.update_thread = ThreadWithResult(target = self.gui.updater.check_updates, args = (self.gui.check_prerelease_version.get(),))
+		self.update_thread = ThreadWithResult(target = self.updater.check_updates, args = (self.gui.check_prerelease_version.get(),))
 
 		self.draw_check()
-		self.updater_win.after(1, self.start_thread)
-		self.updater_win.mainloop()
+		self.win.after(1, self.start_thread)
+		self.win.mainloop()
 
 	def start_thread(self):
 		self.update_thread.start()
 		while self.update_thread.is_alive():
-			self.updater_win.update_idletasks()
-			self.progressbar['value'] = self.gui.updater.progress
+			self.win.update_idletasks()
+			self.progressbar['value'] = self.updater.progress
 		self.progressbar['value'] = 100
 		self.update_thread.join()
 		update_info = self.update_thread.result
@@ -1298,36 +1757,36 @@ class Updater_GUI:
 		else: self.draw_msg(self.gui.lang['updater_latest'])
 
 	def draw_check(self):
-		for w in self.updater_win.winfo_children(): w.destroy()
+		for w in self.win.winfo_children(): w.destroy()
 
-		self.gui.draw_label(self.gui.lang['updater_checking'], master = self.updater_win)
-		self.progressbar = ttk.Progressbar(self.updater_win, orient = 'horizontal', length = 100, mode = 'determinate')
+		self.gui.draw_label(self.gui.lang['updater_checking'], master = self.win)
+		self.progressbar = ttk.Progressbar(self.win, orient = 'horizontal', length = 100, mode = 'determinate')
 		self.progressbar.pack()
-		self.gui.draw_label(self.gui.lang['updater_donotclose'], font = self.gui.bold_font, side = 'bottom', master = self.updater_win)
+		self.gui.draw_label(self.gui.lang['updater_donotclose'], font = self.gui.bold_font, side = 'bottom', master = self.win)
 
 	def draw_msg(self, msg):
 		if self.auto:
 			self.gui.set_title()
 			self.quit()
 		else:
-			for w in self.updater_win.winfo_children(): w.destroy()
-			self.gui.draw_label(msg, master = self.updater_win)
-			ttk.Button(self.updater_win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
+			for w in self.win.winfo_children(): w.destroy()
+			self.gui.draw_label(msg, master = self.win)
+			ttk.Button(self.win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 
 	def draw_download_msg(self, title, tag, prever):
 		if self.auto:
-			self.updater_win.deiconify()
+			self.win.deiconify()
 			self.gui.set_title()
-		for w in self.updater_win.winfo_children(): w.destroy()
+		for w in self.win.winfo_children(): w.destroy()
 		self.gui.draw_label(f'''\
 {self.gui.lang['updater_newupdate']}
 {self.gui.lang['updater_currver']}{self.gui.version}{self.gui.lang['updater_prerelease'] if prerelease else ''}
 {self.gui.lang['updater_newver']}{title}{self.gui.lang['updater_prerelease'] if prever else ''}\
-''', justify = 'center', master = self.updater_win)
-		ttk.Button(self.updater_win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
-		ttk.Button(self.updater_win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
+''', justify = 'center', master = self.win)
+		ttk.Button(self.win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
+		ttk.Button(self.win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
 		
-		if self.auto: self.updater_win.deiconify()
+		if self.auto: self.win.deiconify()
 
 	def open_download(self, tag):
 		webbrowser.open_new_tab(f'https://github.com/{username}/{repo_name}/releases/tag/{tag}')
@@ -1344,9 +1803,25 @@ class Updater:
 
 	def check_internet(self):
 		try:
-			requests.get('https://google.com')
+			self.request('https://google.com', True)
 			return True
 		except Exception: return False
+
+	def request(self, url, testing = False):
+		success = False
+		for i in range(self.request_limit):
+			try:
+				r = urllib.request.urlopen(url)
+				success = True
+				break
+			except Exception:
+				print(traceback.format_exc())
+				if not testing:
+					if not self.check_internet(): return
+		if success:
+			if not testing:
+				d = r.read().decode()
+				return json.loads(d)
 
 	def check_updates(self, prerelease):
 		self.progress = 0
@@ -1362,21 +1837,17 @@ class Updater:
 			versions = []
 			if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 			
-			for i in range(self.request_limit):
-				try:
-					response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases')
-					break
-				except Exception:
-					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+			response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases')
+			if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
-			for info in response.json(): versions.append(info['tag_name'])
+			for info in response: versions.append(info['tag_name'])
 
 			# UPDATE POINT 1
 			self.progress += self.progress_inc
 
 			if internal_version not in versions:
 				try:
-					testvar = response.json()['message']
+					testvar = response['message']
 					if 'API rate limit exceeded for' in testvar:
 						return {
 						'newupdate': False,
@@ -1390,15 +1861,11 @@ class Updater:
 			# UPDATE POINT 2
 			self.progress += self.progress_inc
 
-			for i in range(self.request_limit):
-				try:
-					response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{internal_version}')
-					break
-				except Exception:
-					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}\
+			response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{internal_version}')
+			if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}\
 
 			try:
-				testvar = response.json()['message']
+				testvar = response['message']
 				if 'API rate limit exceeded for' in testvar:
 					return {
 					'newupdate': False,
@@ -1408,7 +1875,7 @@ class Updater:
 				else: return {'newupdate': False, 'error': False}
 			except Exception: pass
 
-			currvertime = response.json()['published_at']
+			currvertime = response['published_at']
 
 			# UPDATE POINT 3
 			self.progress += self.progress_inc
@@ -1416,14 +1883,10 @@ class Updater:
 			if not prerelease:
 				if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
-				for i in range(self.request_limit):
-					try:
-						response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/latest')
-						break
-					except Exception:
-						if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+				response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/latest')
+				if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 				try:
-					testvar = response.json()['message']
+					testvar = response['message']
 					if 'API rate limit exceeded for' in testvar:
 						return {
 						'newupdate': False,
@@ -1432,13 +1895,13 @@ class Updater:
 						}
 					else: return {'newupdate': False, 'error': False}
 				except Exception: pass
-				if response.json()['tag_name'] != internal_version and response.json()['published_at'] > currvertime:
+				if response['tag_name'] != internal_version and response['published_at'] > currvertime:
 					return {
 					'newupdate': True,
 					'prerelease': False,
 					'error': False,
-					'title': response.json()['name'],
-					'tag': response.json()['tag_name']
+					'title': response['name'],
+					'tag': response['tag_name']
 					}
 				else:
 					return {
@@ -1450,14 +1913,10 @@ class Updater:
 				for version in versions:
 					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
-					for i in range(self.request_limit):
-						try:
-							response = requests.get(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{version}')
-							break
-						except:
-							if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+					response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{version}')
+					if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 					try:
-						testvar = response.json()['message']
+						testvar = response['message']
 						if 'API rate limit exceeded for' in testvar:
 							return {
 							'newupdate': False,
@@ -1466,13 +1925,13 @@ class Updater:
 							}
 						else: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': False}
 					except Exception: pass
-					if currvertime < response.json()['published_at']:
+					if currvertime < response['published_at']:
 						return {
 						'newupdate': True,
-						'prerelease': response.json()['prerelease'],
+						'prerelease': response['prerelease'],
 						'error': False,
-						'title': response.json()['name'],
-						'tag': response.json()['tag_name']
+						'title': response['name'],
+						'tag': response['tag_name']
 						}
 					else:
 						return {
@@ -1481,6 +1940,7 @@ class Updater:
 						'error': False
 						}
 		except Exception:
+			print(traceback.format_exc())
 			return {
 			'newupdate': False,
 			'error': True,
@@ -1542,7 +2002,7 @@ class FExplorerFrame(tk.Frame):
 		self.highlight_color = '#99D1FF'
 		self.norm_color = self.cget('bg')
 
-		self.configure(highlightthickness = 1)
+		self.config(highlightthickness = 1)
 
 		self.hovered = False
 		self.selected = False
@@ -1587,20 +2047,20 @@ class FExplorerFrame(tk.Frame):
 	def hover_enter(self, event):
 		if not self.selected:
 			self.hovered = True
-			self.configure(bg = self.hover_color)
-			self.label.configure(background = self.hover_color)
+			self.config(bg = self.hover_color)
+			self.label.config(background = self.hover_color)
 
 	def hover_leave(self, event):
 		if not self.selected:
 			self.hovered = False
-			self.configure(bg = self.norm_color)
-			self.label.configure(background = self.norm_color)
+			self.config(bg = self.norm_color)
+			self.label.config(background = self.norm_color)
 
 	def select(self, event = None):
 		self.after(10, self.deselect_all)
 		self.selected = True
-		self.configure(bg = self.select_color, highlightbackground = self.highlight_color)
-		self.label.configure(background = self.select_color)
+		self.config(bg = self.select_color, highlightbackground = self.highlight_color)
+		self.label.config(background = self.select_color)
 		self.blank.pack()
 		self.button_frame.pack(side = 'right')
 		self.bind('<Button-3>', self.rclick_menu)
@@ -1613,8 +2073,8 @@ class FExplorerFrame(tk.Frame):
 
 	def deselect(self, event = None):
 		self.selected = False
-		self.configure(bg = self.norm_color)
-		self.label.configure(background = self.norm_color)
+		self.config(bg = self.norm_color)
+		self.label.config(background = self.norm_color)
 		self.button_frame.pack_forget()
 		self.blank.pack_forget()
 		self.unbind('<Button-3>')
@@ -1622,11 +2082,11 @@ class FExplorerFrame(tk.Frame):
 	def deselect_all(self):
 		for w in self.master.winfo_children():
 			if isinstance(w, FExplorerFrame) and w != self:
-				w.configure(highlightbackground = self.norm_color)
+				w.config(highlightbackground = self.norm_color)
 				if w.selected:
 					w.selected = False
-					w.configure(bg = self.norm_color)
-					w.label.configure(background = self.norm_color)
+					w.config(bg = self.norm_color)
+					w.label.config(background = self.norm_color)
 					w.button_frame.pack_forget()
 					w.blank.pack_forget()
 					w.unbind('<Button-3>')

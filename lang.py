@@ -4,11 +4,13 @@ if __name__ == '__main__':
 	sys.exit()
 
 lang = {
-	'en_US': {
+	'en-US': {
 		'info': '''\
 English - original language of RBEditor
 (c) 2022-2023 GamingWithEvets Inc.\
 ''',
+
+		'qmark': '?',
 
 		'title': 'RECYCLE BIN EDITOR - RBEditor',
 		'title_dtformat': 'Date and time formatting',
@@ -66,10 +68,18 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'menubar_rbin_explorer_bin': 'Open Recycle Bin in File Explorer',
 		'menubar_rbin_exit': 'Exit',
 		'menubar_settings': 'Settings',
+		'menubar_settings_rbin_view': 'Recycle Bin view',
+		'menubar_settings_rbin_view_felike': 'File Explorer-like',
+		'menubar_settings_rbin_view_legacy': 'Legacy view',
 		'menubar_settings_dtformat': 'Date and time formatting...',
 		'menubar_settings_language': 'Language',
 		'menubar_settings_language_system': 'System language',
 		'menubar_settings_language_info': 'Info for current language',
+		'menubar_settings_locale': 'Locale',
+		'menubar_settings_locale_lang': 'Language locale',
+		'menubar_settings_locale_system': 'System locale',
+		'menubar_settings_locale_custom': 'Custom',
+		'menubar_settings_locale_custom2': ' ({})',
 		'menubar_settings_updates': 'Updates',
 		'menubar_settings_updates_auto': 'Check for updates on startup',
 		'menubar_settings_updates_prerelease': 'Check for pre-release versions',
@@ -83,8 +93,7 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'msgbox_blank': 'This string cannot be blank!',
 		'msgbox_discard': 'Are you sure you want to discard your changes?',
 		'msgbox_discard_item': 'Are you sure you want to discard this item?',
-		'msgbox_overwrite1': 'The file ',
-		'msgbox_overwrite2': ' already exists in its original location. Do you want to overwrite it?',
+		'msgbox_overwrite': 'The file {} already exists in its original location. Do you want to overwrite it?',
 		'msgbox_error_unsupported_version': ': Unknown or unsupported metadata file version',
 		'msgbox_error_invalid_metadata': ': Invalid metadata file',
 		'msgbox_error_unicode': 'This string contains Unicode characters not supported by this version of Tcl/Tk.',
@@ -92,8 +101,8 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'msgbox_rbin_name_change': 'Do you want to update the Recycle Bin file name\'s extension with the new one you set?\nIf you leave it as-is, you might see "issues" when opening it.',
 		'msgbox_n_a': 'Not implemented',
 		'msgbox_n_a_desc': 'This feature is not implemented into this version of {}. Sorry!',
-		'msgbox_reload': 'The program will now restart.\nAny unsaved changes will be lost.',
-		'msgbox_reload_confirm': 'Are you sure you want to reload the Recycle Bin?',
+		'msgbox_reload_confirm': 'Are you sure you want to reload the Recycle Bin? You will return to the main menu.',
+		'msgbox_reload_next_reboot': 'The changes will take effect the next time you open the program.',
 		'msgbox_not_in_rb': 'This item is no longer in the Recycle Bin.\nIt will now be removed from this list.',
 		'msgbox_folder_warn': 'When opening a folder in the Recycle Bin, you cannot open any subfolders until the folder is restored.\n\nDo you want to continue?',
 		'msgbox_lnk_warn': '''\
@@ -181,11 +190,20 @@ Do you want to continue?\
 		'new_item_invalid_path': 'File path must not have the following characters:',
 		'new_item_invalid_path_2': 'File path must include directories!',
 		'new_item_invalid_path_3': 'Invalid file path!',
+		'new_item_invalid_path_4': 'File path must be absolute!',
 
 		'new_item_hacker_mode': 'Hacker mode',
 		'new_item_hacker_mode_note': '(to bypass this error, enable hacker mode!)',
 		'new_item_hacker_mode_enable': 'Enable hacker mode',
 		'new_item_hacker_mode_no_terminator': 'Unterminated file path (metadata version 2 only)',
+
+		'locale_chooser_title': 'Choose a locale',
+		'locale_chooser_choose': 'Choose a locale:',
+
+		'dtpicker_title': 'Date and time picker',
+		'dtpicker_type': 'Input type',
+		'dtpicker_ft_header': 'Time (FILETIME format)',
+		'dtpicker_ft_notes': 'Notes:\n1. The FILETIME value might round up or down because Python\'s datetime\nsystem does not support nanoseconds\n2. The FILETIME value must convert to a time between\nJan 1, 1 CE, 00:00:00.000000\nand Dec 31, 9999, 23:59:59.999999\n(both local time)',
 
 		'updater_title': 'Updater',
 		'updater_checking': 'Checking for updates...',
@@ -200,7 +218,7 @@ Do you want to continue?\
 		'updater_latest': 'You are already using the latest version.',
 		'updater_download': 'Visit download page',
 	},
-	'vi_VN': {
+	'vi-VN': {
 		'info': '''\
 Tiếng Việt - ngôn ngữ thứ hai của RBEditor
 (c) 2022-2023 GamingWithEvets Inc.\
@@ -263,10 +281,16 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'menubar_rbin_explorer_bin': 'Mở Thùng rác trong File Explorer',
 		'menubar_rbin_exit': 'Thoát',
 		'menubar_settings': 'Cài đặt',
+		'menubar_settings_rbin_view': 'Chế độ xem Thùng rác',
+		'menubar_settings_rbin_view_felike': 'Giống File Explorer',
+		'menubar_settings_rbin_view_legacy': 'Chế độ xem cũ',
 		'menubar_settings_dtformat': 'Định dạng ngày giờ...',
 		'menubar_settings_language': 'Ngôn ngữ',
 		'menubar_settings_language_system': 'Ngôn ngữ hệ thống',
 		'menubar_settings_language_info': 'Thông tin về ngôn ngữ hiện tại',
+		'menubar_settings_locale_lang': 'Locale ngôn ngữ',
+		'menubar_settings_locale_system': 'Locale hệ thống',
+		'menubar_settings_locale_custom': 'Tùy chọn',
 		'menubar_settings_updates': 'Cập nhật',
 		'menubar_settings_updates_auto': 'Kiểm tra cập nhật khi khởi động',
 		'menubar_settings_updates_prerelease': 'Kiểm tra phiên bản phát hành trước',
@@ -280,8 +304,7 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'msgbox_blank': 'Chuỗi kí tự này không được để trống!',
 		'msgbox_discard': 'Bạn có chắc chắn muốn hủy các thay đổi của mình không?',
 		'msgbox_discard_item': 'Bạn có chắc chắn muốn hủy khoản mục này không?',
-		'msgbox_overwrite1': 'Tệp ',
-		'msgbox_overwrite2': ' tồn tại ở vị trí ban đầu. Bạn có muốn thay thế tệp ở nơi nhận với tệp trong Thùng rác không?',
+		'msgbox_overwrite': 'Tệp {} tồn tại ở vị trí ban đầu. Bạn có muốn thay thế tệp ở nơi nhận với tệp trong Thùng rác không?',
 		'msgbox_error_invalid_metadata': ': Tệp siêu dữ liệu không hợp lệ',
 		'msgbox_error_unsupported_version': ': Phiên bản tệp siêu dữ liệu không xác định hoặc không được hỗ trợ',
 		'msgbox_error_unicode': 'Chuỗi kí tự này chứa các ký tự Unicode không được hỗ trợ bởi phiên bản Tcl/Tk này.',
@@ -289,8 +312,8 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'msgbox_rbin_name_change': 'Bạn có muốn cập nhật phần mở rộng của tên tệp Thùng rác bằng phần mở rộng mới mà bạn đã đặt không?\nNếu bạn để nó nguyên trạng, bạn có thể thấy "sự cố" khi mở nó.',
 		'msgbox_n_a': 'Chưa được triển khai',
 		'msgbox_n_a_desc': 'Tính năng này không được triển khai trong phiên bản này của {}. Xin lỗi!',
-		'msgbox_reload': 'Phần mềm bây giờ sẽ khởi động lại.\nMọi thay đổi chưa được lưu sẽ bị mất.',
-		'msgbox_reload_confirm': 'Bạn có chắc chắn muốn tải lại Thùng rác không?',
+		'msgbox_reload_confirm': 'Bạn có chắc chắn muốn tải lại Thùng rác không? Bạn sẽ được đưa về màn hình chính.',
+		'msgbox_reload_next_reboot': 'Những thay đổi sẽ có hiệu lực vào lần mở tiếp theo.',
 		'msgbox_not_in_rb': 'Mục này không còn trong Thùng rác.\nMục này sẽ bị xóa khỏi danh sách này.',
 		'msgbox_folder_warn': 'Khi mở một thư mục trong Thùng rác, bạn không thể mở bất kỳ thư mục con nào cho đến khi thư mục đó được khôi phục.\n\nBạn có muốn tiếp tục không?',
 		'msgbox_lnk_warn': '''\
@@ -378,11 +401,15 @@ Bạn có muốn tiếp tục không?\
 		'new_item_invalid_path': 'Đường dẫn tập tin không được có các ký tự sau:',
 		'new_item_invalid_path_2': 'Đường dẫn tệp phải bao gồm thư mục!',
 		'new_item_invalid_path_3': 'Đường dẫn tệp không hợp lệ!',
+		'new_item_invalid_path_4': 'Đường dẫn tệp phải là đường dẫn tuyệt đối!',
 
 		'new_item_hacker_mode': 'Chế độ hacker',
 		'new_item_hacker_mode_note': '(để tránh lỗi này, hãy bật chế độ hacker!)',
 		'new_item_hacker_mode_enable': 'Bật chế độ hacker',
 		'new_item_hacker_mode_no_terminator': 'Đường dẫn tệp không có kí tự kết thúc (chỉ cho tệp siêu dữ liệu phiên bản 2)',
+
+		'locale_chooser_title': 'Chọn một locale',
+		'locale_chooser_choose': 'Chọn một locale:',
 
 		'updater_title': 'Chương trình cập nhật',
 		'updater_checking': 'Đang kiểm tra cập nhật...',
@@ -398,11 +425,13 @@ Bạn có muốn tiếp tục không?\
 		'updater_latest': 'Bạn đang sử dụng phiên bản mới nhất.',
 		'updater_download': 'Truy cập trang tải xuống',
 	},
-	'ja_JP': {
+	'ja-JP': {
 		'info': '''\
 日本語 - RBEditor の第３言語
 (c) 2023 GamingWithEvets Inc.\
 ''',
+
+		'qmark': '？',
 
 		'title': 'ごみ箱エディタ - RBEditor',
 		'title_dtformat': '日付と時刻の形式',
@@ -460,10 +489,18 @@ Linux ディストリビューションを使用したことがある場合は�
 		'menubar_rbin_explorer_bin': 'ファイル エクスプローラでごみ箱を開く',
 		'menubar_rbin_exit': '出口',
 		'menubar_settings': '設定',
+		'menubar_settings_rbin_view': 'ごみ箱ビュー',
+		'menubar_settings_rbin_view_felike': 'ファイル エクスプローラーに似た',
+		'menubar_settings_rbin_view_legacy': 'レガシー ビュー',
 		'menubar_settings_dtformat': '日付と時刻の形式...',
 		'menubar_settings_language': '言語',
 		'menubar_settings_language_system': 'システム言語',
 		'menubar_settings_language_info': '現在の言語の情報',
+		'menubar_settings_locale': 'ロケール',
+		'menubar_settings_locale_lang': '言語ロケール',
+		'menubar_settings_locale_system': 'システム ロケール',
+		'menubar_settings_locale_custom': 'カスタム',
+		'menubar_settings_locale_custom2': '（{}）',
 		'menubar_settings_updates': '更新',
 		'menubar_settings_updates_auto': '起動時に更新を確認する',
 		'menubar_settings_updates_prerelease': 'プレリリース バージョンを確認する',
@@ -477,8 +514,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_blank': 'この文字列を空白にすることはできません！',
 		'msgbox_discard': '変更を破棄してもよろしいですか?',
 		'msgbox_discard_item': '本当にこの項目を破棄しますか?',
-		'msgbox_overwrite1': 'ファイル',
-		'msgbox_overwrite2': 'は、元の場所に既に存在します。 上書きしますか？',
+		'msgbox_overwrite': 'ファイル {} は、元の場所に既に存在します。 上書きしますか？',
 		'msgbox_error_unsupported_version': '：メタデータ ファイルのバージョンが不明またはサポートされていません',
 		'msgbox_error_invalid_metadata': '：メタデータ ファイルが無効です',
 		'msgbox_error_unicode': 'この文字列には、このバージョンの Tcl/Tk でサポートされていない Unicode 文字が含まれています。',
@@ -486,8 +522,8 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_rbin_name_change': 'ごみ箱のファイル名の拡張子を、設定した新しい拡張子に更新しますか？\nそのままにしておくと、開いたときに「問題」が発生する可能性があります。',
 		'msgbox_n_a': '未実装',
 		'msgbox_n_a_desc': 'この機能は、このバージョンの {} には実装されていません。 ごめん！',
-		'msgbox_reload': 'プログラムが再起動します。\n保存されていない変更は失われます。',
-		'msgbox_reload_confirm': 'ごみ箱を再読み込みしてもよろしいですか？',
+		'msgbox_reload_confirm': 'ごみ箱を再読み込みしてもよろしいですか？ このプロセスにより、メイン画面に戻ります。',
+		'msgbox_reload_next_reboot': '次回プログラムを開いたときに、変更が有効になります。',
 		'msgbox_not_in_rb': 'このアイテムはごみ箱にありません。\nこのリストから削除されます。',
 		'msgbox_folder_warn': 'ごみ箱のフォルダを開く場合、フォルダが復元されるまでサブフォルダを開くことはできません。\n\n続行しますか?',
 		'msgbox_lnk_warn': '''\
@@ -575,11 +611,15 @@ Linux ディストリビューションを使用したことがある場合は�
 		'new_item_invalid_path': 'ファイルパスに次の文字を含めることはできません：',
 		'new_item_invalid_path_2': 'ファイルパスにはディレクトリを含める必要があります！',
 		'new_item_invalid_path_3': 'ファイルパスが無効です！',
+		'new_item_invalid_path_4': 'ファイルパスは絶対パスにする必要があります！',
 
 		'new_item_hacker_mode': 'ハッカーモード',
 		'new_item_hacker_mode_note': '（このエラーを回避するには、ハッカーモードを有効にしてください！）',
 		'new_item_hacker_mode_enable': 'ハッカーモードを有効にする',
 		'new_item_hacker_mode_no_terminator': '終端文字を持たないファイルパス（メタデータバージョン２のみ）',
+
+		'locale_chooser_title': 'ロケールを選択',
+		'locale_chooser_choose': 'ロケールを選択してください',
 
 		'updater_title': 'アップデーター',
 		'updater_checking': 'アップデートの確認...',
