@@ -4,8 +4,7 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 **Supports Windows Vista - Windows 11**
 
-![RBEditor Beta 1.3.0_01 GIF](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW)  
-*(If the GIF doesn't show, click [here](https://drive.google.com/uc?export=view&id=1wgVq6eaBvKwZdjHlJ5HQAro90PKrwiAW) to see it)*
+![RBEditor Beta 1.3.0_01 GIF](https://s11.gifyu.com/images/rbeditor_gif.gif)
 
 [Download for Windows Vista, 7, 8, 8.1, 10, 11](../../releases/latest)  
 <details>
@@ -48,32 +47,38 @@ RBEditor currently has these available languages:
 | Vietnamese | Beta 1.0.0 |
 
 # Running and building from source code
-If you're just wanting to run RBEditor, download the appropriate EXE file in [the Releases page]((../../releases/latest)).
+If you're just wanting to run RBEditor, download the appropriate EXE file in [the Releases page](../../releases/latest).
+
+For builds without EXE files, you can follow the steps below to build from source code. Note that this requires a little bit of technical knowledge!
 
 ## Requirements
 These are the minimum requirements to run and build RBEditor from source code:
 - At least [Python 3.6.0](https://www.python.org/downloads/release/python-360/)
 - [The WMI module](https://pypi.org/project/WMI/)
-- [The PyInstaller module](https://pypi.org/project/pyinstaller/) (note: not required if you don't need to build)
-- At least Windows Vista (note: RBEditor **cannot** be run on Unix-based systems)
+- [The Requests library](https://pypi.org/project/requests/) (required to check for updates on versions [0.2.1](../../releases/tag/v0.2.1) and older)
+- [The PyInstaller module](https://pypi.org/project/pyinstaller/) (not required if you don't need to build)
+- At least Windows Vista (note: RBEditor **cannot** be run or built on Unix-based systems)
 
 However, to get the best experience possible, here are the recommended requirements:
 - At least [Python 3.7.6](https://www.python.org/downloads/release/python-376/)
 - [The WMI module](https://pypi.org/project/WMI/)
-- [The `natsort` module](https://pypi.org/project/natsort/) (note: requires Python 3.7+; required to use natural sorting)
-- [The PyInstaller module](https://pypi.org/project/pyinstaller/) (note: not required if you don't need to build)
-- At least Windows Vista (note: RBEditor **cannot** be run on Unix-based systems)
+- [The Requests library](https://pypi.org/project/requests/) (required to check for updates on versions [0.2.1](../../releases/tag/v0.2.1) and older)
+- [The `natsort` module](https://pypi.org/project/natsort/) (requires Python 3.7 and newer; required to use natural sorting on versions [1.0.0-dev2](../../releases/tag/v1.0.0-dev2) and newer)
+- [The PyInstaller module](https://pypi.org/project/pyinstaller/) (not required if you don't need to build)
+- At least Windows Vista (note: RBEditor **cannot** be run or built on Unix-based systems)
 
-If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with **WMI, `natsort` and PyInstaller**.
-- The need for Windows Vista is because binaries built on a Windows version will only work on that version and beyond. So Windows Vista binaries can run on Vista and higher, but Windows 10 and 11 binaries can only run on 10 and 11 and not older versions.
+If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with **WMI, Requests, `natsort` and PyInstaller**.
+- The need for Windows Vista is because binaries built on a Windows version will only work on that version and beyond (except for Windows 11; binaries compiled on Windows 11 will work on Windows 10).
 - The two architectures are to obviously compile both x64 and x86 binaries.
 
 ## Building
 **Step 0:** Download the repository  
-Pick your favorite method! You can pick either `git clone`, downloading a ZIP file or other means.
+Pick your favorite method! You can pick either `git clone` (if you have Git installed), downloading a ZIP file or other means.  
 
 **Step 1:** Install the modules  
-Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will install the WMI module. Make sure to also run `python -m pip install pyinstaller` to install PyInstaller as well!
+Open a command prompt at the root of the repo directory and run `python -m pip install -r requirements.txt`. This will install all the modules needed to run RBEditor with the best experience.
+
+Make sure to also run `python -m pip install pyinstaller` to install PyInstaller as well! For convenience, I added the `wheel` package so PyInstaller will install faster.
 
 **Step 2:** Test it  
 Run `python main.py`. Check that everything works.
