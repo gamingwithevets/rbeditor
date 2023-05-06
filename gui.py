@@ -56,8 +56,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev1'
-internal_version = 'v1.0.0-dev1'
+version = '1.0.0-dev2'
+internal_version = 'v1.0.0-dev2'
 prerelease = True
 
 license = 'MIT'
@@ -138,7 +138,10 @@ class RBHandler:
 			'version': filedata['version'],
 			}
 
-		if len(bin_items_unsorted) > 0: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: os.path.basename(x[1]['ogpath']).lower())))
+		if len(bin_items_unsorted) > 0:
+			if self.gui.sort_method == 'natsort': self.gui.bin_items = dict(collections.OrderedDict((k, bin_items_unsorted[k]) for k in natsorted(bin_items_unsorted.keys(), alg=ns.N | ns.P | ns.IC, key=lambda x: os.path.basename(bin_items_unsorted[x]['ogpath']))))
+			# fallback
+			else: self.gui.bin_items = dict(collections.OrderedDict(sorted(bin_items_unsorted.items(), key = lambda x: os.path.basename(x[1]['ogpath'].lower()))))
 
 	def get_md_version(self, version): return f'{self.gui.lang["itemproperties_version_text"]}{version}'
 
@@ -345,6 +348,12 @@ class GUI:
 	def __init__(self, window):
 		self.version = version
 
+		try:
+			global natsorted, ns
+			from natsort import natsorted, ns
+			self.enable_natural_sort = True
+		except ImportError: self.enable_natural_sort = False
+
 		self.window = window
 
 		self.temp_path = temp_path
@@ -367,10 +376,18 @@ class GUI:
 		self.init_protocols()
 
 		# default settings
+
 		self.rbin_view_default = 'felike'
 		self.rbin_view_tk = tk.StringVar(); self.rbin_view_tk.set(self.rbin_view_default)
 		self.rbin_view = self.rbin_view_tk.get()
 		self.rbin_view_options = ['felike', 'legacy']
+
+		self.sort_method_default = 'lexico'
+		self.sort_method_tk = tk.StringVar()
+		if self.enable_natural_sort: self.sort_method_tk.set('natsort')
+		else: self.sort_method_tk.set(self.sort_method_default)
+		self.sort_method = self.sort_method_tk.get()
+		self.sort_method_options = ['natsort', 'lexico']
 
 		self.default_date_format = '%c'
 		self.date_format = self.default_date_format
@@ -697,6 +714,14 @@ class GUI:
 					if self.rbin_view_tk.get() not in self.rbin_view_options: self.rbin_view_tk.set(self.rbin_view_default)
 					self.rbin_view = self.rbin_view_tk.get()
 				except Exception: pass
+				try:
+					self.sort_method_tk.set(self.ini['settings']['sort_method'])
+					if self.sort_method_tk.get() == 'natsort' and not self.enable_natural_sort: self.sort_method_tk.set(self.sort_method_default)
+					elif self.sort_method_tk.get() not in self.sort_method_options:
+						if self.enable_natural_sort: self.sort_method_tk.set('natsort')
+						else: self.sort_method_tk.set(self.sort_method_default)
+					self.sort_method = self.sort_method_tk.get()
+				except Exception: pass
 
 			if 'updater' in sects:
 				try: self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
@@ -716,6 +741,7 @@ class GUI:
 		self.ini['settings']['locale_option'] = self.locale_option.get()
 		self.ini['settings']['date_format'] = self.date_format.replace('%', '%%').encode('unicode-escape').decode()
 		self.ini['settings']['rbin_view'] = self.rbin_view_tk.get()
+		self.ini['settings']['sort_method'] = self.sort_method_tk.get()
 
 		self.ini['updater'] = {}
 		self.ini['updater']['auto_check_updates'] = str(self.auto_check_updates.get())
@@ -922,6 +948,10 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		rbin_view_menu =  tk.Menu(menubar)
 		for i in self.rbin_view_options: rbin_view_menu.add_radiobutton(label = self.lang[f'menubar_settings_rbin_view_{i}'], variable = self.rbin_view_tk, value = i, command = self.setting_change)
 		settings_menu.add_cascade(label = self.lang['menubar_settings_rbin_view'], menu = rbin_view_menu)
+
+		sort_method_menu =  tk.Menu(menubar)
+		for i in self.sort_method_options: sort_method_menu.add_radiobutton(label = self.lang[f'menubar_settings_sort_method_{i}'], variable = self.sort_method_tk, value = i, command = self.setting_change, state = 'disabled' if i == 'natsort' and not self.enable_natural_sort else 'normal')
+		settings_menu.add_cascade(label = self.lang['menubar_settings_sort_method'], menu = sort_method_menu)
 		
 		settings_menu.add_command(label = self.lang['menubar_settings_dtformat'], command = self.dt_menu.init_window)
 
@@ -2003,6 +2033,7 @@ class FExplorerFrame(tk.Frame):
 		self.norm_color = self.cget('bg')
 
 		self.config(highlightthickness = 1)
+		self.config(highlightcolor = self.highlight_color)
 
 		self.hovered = False
 		self.selected = False
@@ -2017,8 +2048,8 @@ class FExplorerFrame(tk.Frame):
 
 		self.blank = ttk.Label(self, background = self.select_color, anchor = 'sw')
 		self.button_frame = tk.Frame(self)
-		ttk.Button(self.button_frame, text = self.gui.lang['main_restore'], style = 'Sel.TButton', command = lambda e = item: self.gui.restore_item(e)).pack(side = 'left')
-		ttk.Button(self.button_frame, text = self.gui.lang['main_delete'], style = 'Sel.TButton', command = lambda e = item: self.gui.delete_item(e)).pack(side = 'right')
+		ttk.Button(self.button_frame, text = self.gui.lang['main_restore'], style = 'Sel.TButton', command = lambda: self.gui.restore_item(item)).pack(side = 'left')
+		ttk.Button(self.button_frame, text = self.gui.lang['main_delete'], style = 'Sel.TButton', command = lambda: self.gui.delete_item(item)).pack(side = 'right')
 
 		self.context_menu = tk.Menu(self, tearoff = False)
 		self.context_menu.add_command(label = self.gui.lang['main_open'], font = self.gui.bold_font, command = lambda: self.gui.open_item(item))
@@ -2059,11 +2090,15 @@ class FExplorerFrame(tk.Frame):
 	def select(self, event = None):
 		self.after(10, self.deselect_all)
 		self.selected = True
-		self.config(bg = self.select_color, highlightbackground = self.highlight_color)
+		self.config(bg = self.select_color)
 		self.label.config(background = self.select_color)
 		self.blank.pack()
 		self.button_frame.pack(side = 'right')
+		self.focus_set()
 		self.bind('<Button-3>', self.rclick_menu)
+		self.bind('<Return>', lambda e: self.gui.open_item(self.item))
+		self.bind('<Delete>', lambda e: self.gui.delete_item(self.item))
+		self.bind('<KP_Delete>', lambda e: self.gui.delete_item(self.item))
 		self.gui.window.bind('<Button-1>', self.deselect_init)
 
 	def deselect_init(self, event):
@@ -2078,11 +2113,13 @@ class FExplorerFrame(tk.Frame):
 		self.button_frame.pack_forget()
 		self.blank.pack_forget()
 		self.unbind('<Button-3>')
+		self.unbind('<Return>')
+		self.unbind('<Delete>')
+		self.unbind('<KP_Delete>')
 
 	def deselect_all(self):
 		for w in self.master.winfo_children():
 			if isinstance(w, FExplorerFrame) and w != self:
-				w.config(highlightbackground = self.norm_color)
 				if w.selected:
 					w.selected = False
 					w.config(bg = self.norm_color)
@@ -2090,6 +2127,9 @@ class FExplorerFrame(tk.Frame):
 					w.button_frame.pack_forget()
 					w.blank.pack_forget()
 					w.unbind('<Button-3>')
+					w.unbind('<Return>')
+					w.unbind('<Delete>')
+					w.unbind('<KP_Delete>')
 
 	def rclick_menu(self, event):
 		if not self.selected: self.select()

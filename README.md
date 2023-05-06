@@ -60,10 +60,11 @@ These are the minimum requirements to run and build RBEditor from source code:
 However, to get the best experience possible, here are the recommended requirements:
 - At least [Python 3.7.6](https://www.python.org/downloads/release/python-376/)
 - [The WMI module](https://pypi.org/project/WMI/)
+- [The `natsort` module](https://pypi.org/project/natsort/) (note: requires Python 3.7+; required to use natural sorting)
 - [The PyInstaller module](https://pypi.org/project/pyinstaller/) (note: not required if you don't need to build)
 - At least Windows Vista (note: RBEditor **cannot** be run on Unix-based systems)
 
-If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with **WMI and PyInstaller**.
+If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with **WMI, `natsort` and PyInstaller**.
 - The need for Windows Vista is because binaries built on a Windows version will only work on that version and beyond. So Windows Vista binaries can run on Vista and higher, but Windows 10 and 11 binaries can only run on 10 and 11 and not older versions.
 - The two architectures are to obviously compile both x64 and x86 binaries.
 
