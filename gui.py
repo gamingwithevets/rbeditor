@@ -56,8 +56,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev2'
-internal_version = 'v1.0.0-dev2'
+version = '1.0.0-dev2.1'
+internal_version = 'v1.0.0-dev2.1'
 prerelease = True
 
 license = 'MIT'
@@ -158,7 +158,7 @@ class RBHandler:
 				desc = winreg.QueryValue(HKCR, winreg.QueryValue(HKCR, ext))
 				if desc: return desc
 				else: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
-			except Exception: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
+			except: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
 
 	# https://stackoverflow.com/a/22325767 (modified)
 	@staticmethod
@@ -267,7 +267,7 @@ class RBHandler:
 						if char == '\x00': break
 						fname += char
 					if len(fname) != fnamelen: unterminated_str = True
-				except Exception:
+				except:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'Error in metadata v2 read operation, file {file_to_read}, drive {os.path.splitdrive(file_path)[0]}\n{traceback.format_exc()}')
 					skip = True
 					self.gui.enable_rbin_metadata_unsupported_version_msg = True
@@ -286,7 +286,7 @@ class RBHandler:
 					for char in fname_raw:
 						if char == '\x00': break
 						fname += char
-				except Exception:
+				except:
 					tk.messagebox.showerror(self.gui.lang['msgbox_error'], f'Error in metadata v1 read operation, file {file_to_read}, drive {os.path.splitdrive(file_path)[0]}\n{traceback.format_exc()}')
 					skip = True
 					self.gui.enable_rbin_metadata_unsupported_version_msg = True
@@ -696,24 +696,24 @@ class GUI:
 		if sects:
 			if 'settings' in sects:
 				try: self.language_tk.set(self.ini['settings']['language'].replace('_', '-'))
-				except Exception: pass
+				except: pass
 				try:
 					self.locale_tk.set(self.ini['settings']['locale'])
 					if self.locale_tk.get() not in self.locales: self.locale_tk.set(self.locale_default)
 					self.locale = self.locale_tk.get()
-				except Exception: pass
+				except: pass
 				try:
 					self.locale_option.set(self.ini['settings']['locale_option'])
 					if self.locale_option.get() not in ['lang', 'system', 'custom']: self.locale_option.set('lang')
 					self.prev_locale_option = self.locale_option.get()
-				except Exception: pass
+				except: pass
 				try: self.date_format = self.ini['settings']['date_format'].encode().decode('unicode-escape').replace('%%', '%')
-				except Exception: pass
+				except: pass
 				try:
 					self.rbin_view_tk.set(self.ini['settings']['rbin_view'])
 					if self.rbin_view_tk.get() not in self.rbin_view_options: self.rbin_view_tk.set(self.rbin_view_default)
 					self.rbin_view = self.rbin_view_tk.get()
-				except Exception: pass
+				except: pass
 				try:
 					self.sort_method_tk.set(self.ini['settings']['sort_method'])
 					if self.sort_method_tk.get() == 'natsort' and not self.enable_natural_sort: self.sort_method_tk.set(self.sort_method_default)
@@ -721,13 +721,13 @@ class GUI:
 						if self.enable_natural_sort: self.sort_method_tk.set('natsort')
 						else: self.sort_method_tk.set(self.sort_method_default)
 					self.sort_method = self.sort_method_tk.get()
-				except Exception: pass
+				except: pass
 
 			if 'updater' in sects:
 				try: self.auto_check_updates.set(self.ini.getboolean('updater', 'auto_check_updates'))
-				except Exception: pass
+				except: pass
 				try: self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
-				except Exception: pass
+				except: pass
 
 		self.set_lang()
 		self.set_locale()
@@ -846,7 +846,7 @@ class GUI:
 			self.updater_win_open,
 			self.locale_chooser_open,
 			self.dt_picker_open,
-			]): sys.exit()
+			]): os._exit(0)
 
 	def playsound(self, event):
 		if self.context_menu_open: self.context_menu_open = False
@@ -987,11 +987,11 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		for i in self.languages:
 			# try-except nest used in case of an unused language in language_names
 			try: self.lang_menu.entryconfig(i, state = 'normal')
-			except Exception: pass
+			except: pass
 
 	def main(self):
 		try: self.draw_label(self.lang['title'], font = self.bold_font)
-		except Exception: self.draw_label(self.lang['title'])
+		except: self.draw_label(self.lang['title'])
 		self.draw_blank()
 
 		loading_text = ttk.Label(text = self.lang['main_loading']); loading_text.pack()
@@ -1835,7 +1835,7 @@ class Updater:
 		try:
 			self.request('https://google.com', True)
 			return True
-		except Exception: return False
+		except: return False
 
 	def request(self, url, testing = False):
 		success = False
@@ -1844,7 +1844,7 @@ class Updater:
 				r = urllib.request.urlopen(url)
 				success = True
 				break
-			except Exception:
+			except:
 				print(traceback.format_exc())
 				if not testing:
 					if not self.check_internet(): return
@@ -1885,7 +1885,7 @@ class Updater:
 						'exceeded': True
 						}
 					else: return {'newupdate': False, 'error': False}
-				except Exception: return {'newupdate': False, 'error': False}
+				except: return {'newupdate': False, 'error': False}
 			if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
 			# UPDATE POINT 2
@@ -1903,7 +1903,7 @@ class Updater:
 					'exceeded': True
 					}
 				else: return {'newupdate': False, 'error': False}
-			except Exception: pass
+			except: pass
 
 			currvertime = response['published_at']
 
@@ -1924,7 +1924,7 @@ class Updater:
 						'exceeded': True
 						}
 					else: return {'newupdate': False, 'error': False}
-				except Exception: pass
+				except: pass
 				if response['tag_name'] != internal_version and response['published_at'] > currvertime:
 					return {
 					'newupdate': True,
@@ -1954,7 +1954,7 @@ class Updater:
 							'exceeded': True
 							}
 						else: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': False}
-					except Exception: pass
+					except: pass
 					if currvertime < response['published_at']:
 						return {
 						'newupdate': True,
@@ -1969,7 +1969,7 @@ class Updater:
 						'unofficial': False,
 						'error': False
 						}
-		except Exception:
+		except:
 			print(traceback.format_exc())
 			return {
 			'newupdate': False,
@@ -2098,7 +2098,8 @@ class FExplorerFrame(tk.Frame):
 		self.bind('<Button-3>', self.rclick_menu)
 		self.bind('<Return>', lambda e: self.gui.open_item(self.item))
 		self.bind('<Delete>', lambda e: self.gui.delete_item(self.item))
-		self.bind('<KP_Delete>', lambda e: self.gui.delete_item(self.item))
+		try: self.bind('<KP_Delete>', lambda e: self.gui.delete_item(self.item))
+		except: pass
 		self.gui.window.bind('<Button-1>', self.deselect_init)
 
 	def deselect_init(self, event):
@@ -2115,7 +2116,8 @@ class FExplorerFrame(tk.Frame):
 		self.unbind('<Button-3>')
 		self.unbind('<Return>')
 		self.unbind('<Delete>')
-		self.unbind('<KP_Delete>')
+		try: self.unbind('<KP_Delete>')
+		except: pass
 
 	def deselect_all(self):
 		for w in self.master.winfo_children():
@@ -2129,7 +2131,8 @@ class FExplorerFrame(tk.Frame):
 					w.unbind('<Button-3>')
 					w.unbind('<Return>')
 					w.unbind('<Delete>')
-					w.unbind('<KP_Delete>')
+					try: w.unbind('<KP_Delete>')
+					except: pass
 
 	def rclick_menu(self, event):
 		if not self.selected: self.select()

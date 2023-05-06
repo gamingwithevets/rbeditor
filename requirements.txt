@@ -1,1 +1,3 @@
 wmi
+natsort
+wheel

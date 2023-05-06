@@ -38,4 +38,4 @@ except ImportError:
 try:
 	g = gui.GUI(tk.Tk())
 	g.start_main()
-except Exception: gui.report_error()
+except: gui.report_error()
