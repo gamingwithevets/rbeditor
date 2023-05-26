@@ -93,4 +93,4 @@ A: Well, I'm not forcing you to use this in your daily lives. RBEditor is basica
 **Q: I keep getting "An error has occurred" messages.**  
 A: Here's what you need to do:  
 1. Check if you're using an old version of RBEditor with the updater (at the time of me writing this, there is no production release of RBEditor, so you will need to enable checking for pre-release versions). Note that in some versions the updater might be error-prone as well, and in that case you can visit this repository (the repository URL is in the About RBEditor dialog).
-2. If the error persists, better [report it](https://github.com/gamingwithevets/rbeditor/issues/new)!
+2. If the error persists, better [report it](https://github.com/gamingwithevets/rbeditor/issues)!
