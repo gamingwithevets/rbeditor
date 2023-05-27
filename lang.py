@@ -4,7 +4,7 @@ if __name__ == '__main__':
 	sys.exit()
 
 lang = {
-	'en-US': {
+	'en': {
 		'info': '''\
 English - original language of RBEditor
 (c) 2022-2023 GamingWithEvets Inc.\
@@ -62,8 +62,24 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'about_licensed': 'Licensed under the {} license',
 
 		'bytes': 'bytes',
+		'KB': 'KB',
+		'KiB': 'KiB',
+		'MB': 'MB',
+		'MiB': 'MiB',
+		'GB': 'GB',
+		'GiB': 'GiB',
+		'TB': 'TB',
+		'TiB': 'TiB',
+		'PB': 'PB',
+		'PiB': 'PiB',
+		'EB': 'EB',
+		'EiB': 'EiB',
+		'ZB': 'ZB',
+		'ZiB': 'ZiB',
+		'YB': 'YB',
+		'YiB': 'YiB',
 
-		'menubar_rbin': 'RBEditor',
+		'menubar_rbin_sid': 'Your SID: ',
 		'menubar_rbin_reload': 'Reload Recycle Bin',
 		'menubar_rbin_explorer_bin': 'Open Recycle Bin in File Explorer',
 		'menubar_rbin_exit': 'Exit',
@@ -71,9 +87,10 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'menubar_settings_rbin_view': 'Recycle Bin view',
 		'menubar_settings_rbin_view_felike': 'File Explorer-like',
 		'menubar_settings_rbin_view_legacy': 'Legacy view',
-		'menubar_settings_sort_method': 'File sorting method',
-		'menubar_settings_sort_method_natsort': 'Natural (File Explorer) sorting',
-		'menubar_settings_sort_method_lexico': 'Lexicographical (legacy) sorting',
+		'menubar_settings_sort_method': 'File sorting',
+		'menubar_settings_sort_method_natsort': 'Natural sorting',
+		'menubar_settings_sort_method_lexico': 'Lexicographical sorting',
+		'menubar_settings_sort_method_folders_first': 'Show folders first',
 		'menubar_settings_dtformat': 'Date and time formatting...',
 		'menubar_settings_language': 'Language',
 		'menubar_settings_language_system': 'System language',
@@ -102,6 +119,7 @@ If you have used a Linux distribution you should be familiar with this process.\
 		'msgbox_error_unicode': 'This string contains Unicode characters not supported by this version of Tcl/Tk.',
 		'msgbox_unsupported_tcl': 'It looks like you are running Python {}, which has a version of Tcl/Tk that doesn\'t support some Unicode characters.\n\nDo you want to continue?',
 		'msgbox_rbin_name_change': 'Do you want to update the Recycle Bin file name\'s extension with the new one you set?\nIf you leave it as-is, you might see "issues" when opening it.',
+		'msgbox_rbin_name_change_2': 'Changing the "Folder" property will require deletion of the item\'s old data.\nDo you want to continue with deletion? If you select No, the "Folder" property will not change.',
 		'msgbox_n_a': 'Not implemented',
 		'msgbox_n_a_desc': 'This feature is not implemented into this version of {}. Sorry!',
 		'msgbox_reload_confirm': 'Are you sure you want to reload the Recycle Bin? You will return to the main menu.',
@@ -152,8 +170,7 @@ Do you want to continue?\
 
 		'main_loading': 'Loading Recycle Bin, please wait...',
 		'main_warning': 'WARNING:',
-		'main_rb_corrupt': 'The Recycle Bin on drive',
-		'main_rb_corrupt_2': 'is corrupted.',
+		'main_rb_corrupt': 'The Recycle Bin on drive {} is corrupted.',
 		'main_rbin_empty': 'The Recycle Bin is empty!',
 		'main_rbin_metadata_unsupported_version': 'NOTE: Your Recycle Bin contained metadata files that RBEditor can\'t read.',
 		'main_new_item': 'New item',
@@ -189,6 +206,7 @@ Do you want to continue?\
 		'new_item_name': 'New Recycle Bin item',
 		'new_item_version_warning': 'This metadata file version cannot be read by this version of Windows. Continue anyway?',
 		'new_item_size_int_error': 'Size must be an integer!',
+		'new_item_size_out_of_range': 'Size must be between -(2^63) and 2^63-1',
 		'new_item_error_unsupported_version': 'Invalid metadata file version!',
 		'new_item_invalid_path': 'File path must not have the following characters:',
 		'new_item_invalid_path_2': 'File path must include directories!',
@@ -200,20 +218,30 @@ Do you want to continue?\
 		'new_item_hacker_mode_enable': 'Enable hacker mode',
 		'new_item_hacker_mode_no_terminator': 'Unterminated file path (metadata version 2 only)',
 
-		'locale_chooser_title': 'Choose a locale',
-		'locale_chooser_choose': 'Choose a locale:',
+		'locale_chooser_title': 'Locale select',
+		'locale_chooser_choose': 'Select a locale:',
 
 		'dtpicker_title': 'Date and time picker',
 		'dtpicker_type': 'Input type',
+		'dtpicker_type_basic': 'Basic',
+		'dtpicker_day': 'Day',
+		'dtpicker_month': 'Month',
+		'dtpicker_year': 'Year',
+		'dtpicker_hour': 'Hours',
+		'dtpicker_minute': 'Minutes',
+		'dtpicker_second': 'Seconds',
+		'dtpicker_microsecond': 'Microseconds',
 		'dtpicker_ft_header': 'Time (FILETIME format)',
-		'dtpicker_ft_notes': 'Notes:\n1. The FILETIME value might round up or down because Python\'s datetime\nsystem does not support nanoseconds\n2. The FILETIME value must convert to a time between\nJan 1, 1 CE, 00:00:00.000000\nand Dec 31, 9999, 23:59:59.999999\n(both local time)',
+		'dtpicker_ft_learn_more': 'Learn more about FILETIME',
+		'dtpicker_ft_int_error': 'FILETIME must be an integer!',
+		'dtpicker_ft_out_of_range': 'FILETIME not in valid range!',
 
 		'updater_title': 'Updater',
 		'updater_checking': 'Checking for updates...',
 		'updater_donotclose': 'DO NOT close the program\nwhile checking for updates',
-		'updater_exceeded': 'GitHub API rate limit exceeded! Please try again later.',
+		'updater_exceeded': 'GitHub API rate limit exceeded!\nPlease try again later.',
 		'updater_offline': 'Unable to connect to the internet. Please try again\nwhen you have a stable internet connection.',
-		'updater_unknown_error': 'Unable to check for updates! Please try again later.',
+		'updater_unknown_error': 'Unable to check for updates!\nPlease try again later.',
 		'updater_newupdate': 'An update is available!',
 		'updater_currver': 'Current version: ',
 		'updater_newver': 'New version: ',
@@ -221,7 +249,7 @@ Do you want to continue?\
 		'updater_latest': 'You are already using the latest version.',
 		'updater_download': 'Visit download page',
 	},
-	'vi-VN': {
+	'vi': {
 		'info': '''\
 Tiếng Việt - ngôn ngữ thứ hai của RBEditor
 (c) 2022-2023 GamingWithEvets Inc.\
@@ -279,7 +307,7 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 
 		'bytes': 'byte',
 
-		'menubar_rbin': 'RBEditor',
+		'menubar_rbin_sid': 'SID của bạn là: ',
 		'menubar_rbin_reload': 'Tải lại Thùng rác',
 		'menubar_rbin_explorer_bin': 'Mở Thùng rác trong File Explorer',
 		'menubar_rbin_exit': 'Thoát',
@@ -287,6 +315,10 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'menubar_settings_rbin_view': 'Chế độ xem Thùng rác',
 		'menubar_settings_rbin_view_felike': 'Giống File Explorer',
 		'menubar_settings_rbin_view_legacy': 'Chế độ xem cũ',
+		'menubar_settings_sort_method': 'Sắp xếp tệp',
+		'menubar_settings_sort_method_natsort': 'Sắp xếp tự nhiên',
+		'menubar_settings_sort_method_lexico': 'Sắp xếp theo thứ tự từ điển',
+		'menubar_settings_sort_method_folders_first': 'Hiển thị thư mục trước',
 		'menubar_settings_dtformat': 'Định dạng ngày giờ...',
 		'menubar_settings_language': 'Ngôn ngữ',
 		'menubar_settings_language_system': 'Ngôn ngữ hệ thống',
@@ -313,6 +345,7 @@ Nếu bạn đã sử dụng bản phân phối Linux, bạn sẽ quen thuộc v
 		'msgbox_error_unicode': 'Chuỗi kí tự này chứa các ký tự Unicode không được hỗ trợ bởi phiên bản Tcl/Tk này.',
 		'msgbox_unsupported_tcl': 'Có vẻ như bạn đang chạy Python {}, phiên bản này có phiên bản Tcl/Tk không hỗ trợ một số ký tự Unicode.\n\nBạn có muốn tiếp tục không?',
 		'msgbox_rbin_name_change': 'Bạn có muốn cập nhật phần mở rộng của tên tệp Thùng rác bằng phần mở rộng mới mà bạn đã đặt không?\nNếu bạn để nó nguyên trạng, bạn có thể thấy "sự cố" khi mở nó.',
+		'msgbox_rbin_name_change_2': 'Thay đổi thuộc tính "Thư mục" sẽ yêu cầu xóa tất cả dữ liệu cũ của khoản mục.\nBạn có muốn tiếp tục với quá trình xóa không? Nếu bạn chọn Không, thuộc tính "Thư mục" sẽ không thay đổi.',
 		'msgbox_n_a': 'Chưa được triển khai',
 		'msgbox_n_a_desc': 'Tính năng này không được triển khai trong phiên bản này của {}. Xin lỗi!',
 		'msgbox_reload_confirm': 'Bạn có chắc chắn muốn tải lại Thùng rác không? Bạn sẽ được đưa về màn hình chính.',
@@ -363,8 +396,7 @@ Bạn có muốn tiếp tục không?\
 
 		'main_loading': 'Đang tải Thùng rác, vui lòng đợi...',
 		'main_warning': 'CẢNH BÁO:',
-		'main_rb_corrupt': 'Thùng rác trên ổ đĩa',
-		'main_rb_corrupt_2': 'bị hỏng.',
+		'main_rb_corrupt': 'Thùng rác trên ổ đĩa {} bị hỏng.',
 		'main_rbin_empty': 'Thùng rác đang trống!',
 		'main_rbin_metadata_unsupported_version': 'LƯU Ý: Thùng rác của bạn đã chứa các tệp siêu dữ liệu mà RBEditor không thể đọc được.',
 		'main_new_item': 'Tạo khoản mục mới',
@@ -400,6 +432,7 @@ Bạn có muốn tiếp tục không?\
 		'new_item_name': 'Khoản mục Thùng rác mới',
 		'new_item_version_warning': 'Phiên bản tệp siêu dữ liệu này không thể đọc được bằng phiên bản Windows này. Bạn có vẫn muốn tiếp tục không?',
 		'new_item_size_int_error': 'Kích thước phải là một số nguyên!',
+		'new_item_size_out_of_range': 'Kích thước phải từ -(2^63) đến 2^63-1',
 		'new_item_error_unsupported_version': 'Phiên bản tệp siêu dữ liệu không hợp lệ!',
 		'new_item_invalid_path': 'Đường dẫn tập tin không được có các ký tự sau:',
 		'new_item_invalid_path_2': 'Đường dẫn tệp phải bao gồm thư mục!',
@@ -411,15 +444,30 @@ Bạn có muốn tiếp tục không?\
 		'new_item_hacker_mode_enable': 'Bật chế độ hacker',
 		'new_item_hacker_mode_no_terminator': 'Đường dẫn tệp không có kí tự kết thúc (chỉ cho tệp siêu dữ liệu phiên bản 2)',
 
-		'locale_chooser_title': 'Chọn một locale',
+		'locale_chooser_title': 'Chọn locale',
 		'locale_chooser_choose': 'Chọn một locale:',
+
+		'dtpicker_title': 'Bộ chọn ngày và giờ',
+		'dtpicker_type': 'Kiểu nhập liệu',
+		'dtpicker_type_basic': 'Cơ bản',
+		'dtpicker_day': 'Ngày',
+		'dtpicker_month': 'Tháng',
+		'dtpicker_year': 'Năm',
+		'dtpicker_hour': 'Giờ',
+		'dtpicker_minute': 'Phút',
+		'dtpicker_second': 'Giây',
+		'dtpicker_microsecond': 'Micro giây',
+		'dtpicker_ft_header': 'Thời gian (Định dạng FILETIME)',
+		'dtpicker_ft_learn_more': 'Tìm hiểu thêm về FILETIME',
+		'dtpicker_ft_int_error': 'FILETIME phải là một số nguyên!',
+		'dtpicker_ft_out_of_range': 'FILETIME không nằm trong phạm vi hợp lệ!',
 
 		'updater_title': 'Chương trình cập nhật',
 		'updater_checking': 'Đang kiểm tra cập nhật...',
 		'updater_donotclose': 'KHÔNG đóng chương trình\ntrong khi kiểm tra cập nhật',
 		'updater_exceeded': 'Đã vượt quá giới hạn tốc độ API GitHub!\nVui lòng thử lại sau.',
 		'updater_offline': 'Không thể kết nối internet. Vui lòng thử lại\nkhi bạn có đường truyền internet ổn định.',
-		'updater_unknown_error': 'Không thể kiểm tra cập nhật! Vui lòng thử lại sau.',
+		'updater_unknown_error': 'Không thể kiểm tra cập nhật!\nVui lòng thử lại sau.',
 		'updater_newupdate': 'Đã có bản cập nhật!',
 		'updater_currver': 'Phiên bản hiện tại: ',
 		'updater_newver': 'Phiên bản mới: ',
@@ -428,7 +476,7 @@ Bạn có muốn tiếp tục không?\
 		'updater_latest': 'Bạn đang sử dụng phiên bản mới nhất.',
 		'updater_download': 'Truy cập trang tải xuống',
 	},
-	'ja-JP': {
+	'ja': {
 		'info': '''\
 日本語 - RBEditor の第３言語
 (c) 2023 GamingWithEvets Inc.\
@@ -487,7 +535,7 @@ Linux ディストリビューションを使用したことがある場合は�
 
 		'bytes': 'バイト',
 
-		'menubar_rbin': 'RBEditor',
+		'menubar_rbin_sid': 'あなたのSID：',
 		'menubar_rbin_reload': 'ごみ箱をリロードする',
 		'menubar_rbin_explorer_bin': 'ファイル エクスプローラでごみ箱を開く',
 		'menubar_rbin_exit': '出口',
@@ -495,7 +543,11 @@ Linux ディストリビューションを使用したことがある場合は�
 		'menubar_settings_rbin_view': 'ごみ箱ビュー',
 		'menubar_settings_rbin_view_felike': 'ファイル エクスプローラーに似た',
 		'menubar_settings_rbin_view_legacy': 'レガシー ビュー',
-		'menubar_settings_dtformat': '日付と時刻の形式...',
+		'menubar_settings_sort_method': 'ファイルの並べ替え',
+		'menubar_settings_sort_method_natsort': '自然な並べ替え',
+		'menubar_settings_sort_method_lexico': '辞書式並べ替え',
+		'menubar_settings_sort_method_folders_first': '最初にフォルダーを表示',
+		'menubar_settings_dtformat': '日付と時刻の形式…',
 		'menubar_settings_language': '言語',
 		'menubar_settings_language_system': 'システム言語',
 		'menubar_settings_language_info': '現在の言語の情報',
@@ -523,12 +575,13 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_error_unicode': 'この文字列には、このバージョンの Tcl/Tk でサポートされていない Unicode 文字が含まれています。',
 		'msgbox_unsupported_tcl': '一部の Unicode 文字をサポートしていないバージョンの Tcl/Tk を含む Python {} を実行しているようです。\n\n続けたいですか？',
 		'msgbox_rbin_name_change': 'ごみ箱のファイル名の拡張子を、設定した新しい拡張子に更新しますか？\nそのままにしておくと、開いたときに「問題」が発生する可能性があります。',
+		'msgbox_rbin_name_change_2': '「フォルダー」プロパティを変更するには、アイテムの古いデータを削除する必要があります。\n削除を続行しますか？ 「いいえ」を選択した場合、「フォルダ」プロパティは変更されません。',
 		'msgbox_n_a': '未実装',
 		'msgbox_n_a_desc': 'この機能は、このバージョンの {} には実装されていません。 ごめん！',
 		'msgbox_reload_confirm': 'ごみ箱を再読み込みしてもよろしいですか？ このプロセスにより、メイン画面に戻ります。',
 		'msgbox_reload_next_reboot': '次回プログラムを開いたときに、変更が有効になります。',
 		'msgbox_not_in_rb': 'このアイテムはごみ箱にありません。\nこのリストから削除されます。',
-		'msgbox_folder_warn': 'ごみ箱のフォルダを開く場合、フォルダが復元されるまでサブフォルダを開くことはできません。\n\n続行しますか?',
+		'msgbox_folder_warn': 'ごみ箱のフォルダーを開く場合、フォルダーが復元されるまでサブフォルダーを開くことはできません。\n\n続行しますか?',
 		'msgbox_lnk_warn': '''\
 開いたファイルはショートカット ファイル (.lnk) でした。
 
@@ -546,7 +599,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'msgbox_delete': 'この項目を削除しますか?',
 		'msgbox_delete_desc': 'この項目を完全に削除してもよろしいですか?\nこれは、元に戻すことはできません！',
 		'msgbox_delete_all': 'ごみ箱を空にする？',
-		'msgbox_delete_all_desc': '削除済みアイテムをすべて消去してもよろしいですか?\n将来復元できない可能性があるため、これを行う前によく考えてください...',
+		'msgbox_delete_all_desc': '削除済みアイテムをすべて消去してもよろしいですか?\n将来復元できない可能性があるため、これを行う前によく考えてください…',
 
 		'ogname': '名前',
 		'oglocation': '元の場所',
@@ -571,10 +624,9 @@ Linux ディストリビューションを使用したことがある場合は�
 		'ftype_desc_file': 'ファイル',
 		'ftype_desc_file': '{} ファイル',
 
-		'main_loading': 'ごみ箱を読み込んでいます。お待ちください...',
+		'main_loading': 'ごみ箱を読み込んでいます。 お待ちください…',
 		'main_warning': '警告：',
-		'main_rb_corrupt': 'ドライブ',
-		'main_rb_corrupt_2': 'のごみ箱が破損しています。',
+		'main_rb_corrupt': 'ドライブ {} のごみ箱が破損しています。',
 		'main_rbin_empty': 'ごみ箱が空です！',
 		'main_rbin_metadata_unsupported_version': '知らせ：ごみ箱には、RBEditor が読み取れないメタデータ ファイルが含まれていました。',
 		'main_new_item': '新しい項目',
@@ -584,7 +636,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'main_delete': '削除',
 		'main_restore': '戻す',
 		'main_properties': 'プロパティ',
-		'main_folder': '< フォルダー >',
+		'main_folder': '《フォルダー》',
 
 		'itemproperties_properties': '項目のプロパティ',
 		'itemproperties_advanced': 'アドバンス情報',
@@ -604,12 +656,13 @@ Linux ディストリビューションを使用したことがある場合は�
 
 		'new_item_edit': '既存の項目を編集',
 		'new_item_path': '元のファイルパス',
-		'new_item_folder': 'フォルダ？',
+		'new_item_folder': 'フォルダー？',
 		'new_item_bytes_note': '（バイト単位）',
 		'new_item_ext': '拡大',
 		'new_item_name': '新しいごみ箱項目',
 		'new_item_version_warning': 'このメタデータ ファイルのバージョンは、このバージョンの Windows では読み取ることができません。 それでも続行しますか？',
 		'new_item_size_int_error': 'サイズは整数でなければなりません！',
+		'new_item_size_out_of_range': 'サイズは -(2^63) から 2^63-1 の間でなければなりません。',
 		'new_item_error_unsupported_version': '無効なメタデータファイルのバージョンです！',
 		'new_item_invalid_path': 'ファイルパスに次の文字を含めることはできません：',
 		'new_item_invalid_path_2': 'ファイルパスにはディレクトリを含める必要があります！',
@@ -624,8 +677,23 @@ Linux ディストリビューションを使用したことがある場合は�
 		'locale_chooser_title': 'ロケールを選択',
 		'locale_chooser_choose': 'ロケールを選択してください',
 
+		'dtpicker_title': '日付と時刻のピッカー',
+		'dtpicker_type': '入力種類',
+		'dtpicker_type_basic': '基本',
+		'dtpicker_day': '日',
+		'dtpicker_month': '月',
+		'dtpicker_year': '年',
+		'dtpicker_hour': '時',
+		'dtpicker_minute': '分',
+		'dtpicker_second': '秒',
+		'dtpicker_microsecond': 'マイクロ秒',
+		'dtpicker_ft_header': '時刻（FILETIME形式）',
+		'dtpicker_ft_learn_more': 'FILETIME について詳しく見る',
+		'dtpicker_ft_int_error': 'FILETIME は整数でなければなりません！',
+		'dtpicker_ft_out_of_range': 'FILETIME が有効な範囲内にありません！',
+
 		'updater_title': 'アップデーター',
-		'updater_checking': 'アップデートの確認...',
+		'updater_checking': 'アップデートの確認…',
 		'updater_donotclose': 'アップデートの確認中は\nプログラムを閉じないでください',
 		'updater_exceeded': 'GitHub API のレート制限を超えました!\n後でもう一度やり直してください。',
 		'updater_offline': 'インターネットに接続できません。インターネット\n接続が安定しているときにもう一度お試しください。',
@@ -638,5 +706,250 @@ Linux ディストリビューションを使用したことがある場合は�
 		'updater_prompt': 'ダウンロードページに行きますか？',
 		'updater_latest': 'すでに最新バージョンを使用しています。',
 		'updater_download': 'ダウンロードページにアクセス',
+	},
+	'fr': {
+		'info': '''\
+Français - 4ème langue de RBEditor
+(c) 2022-2023 GamingWithEvets Inc.\
+''',
+
+		'qmark': '?',
+
+		'title': 'ÉDITEUR DE CORBEILLE - RBEditor',
+		'title_dtformat': 'Formatage de la date et de l\'heure',
+		'dtformat': 'Format de date et d\'heure',
+		'dtformat_preview': 'À quoi ressemble votre format de date et d\'heure lorsqu\'il est utilisé:',
+		'dtformat_guide': '''\
+Source: https://docs.python.org/fr/3.6/library/datetime.html#strftime-and-strptime-behavior
+
+%a - Jour de la semaine abrégé dans la langue locale.
+%A - Jour de la semaine complet dans la langue locale.
+%w - Jour de la semaine en chiffre, avec 0 pour le dimanche et 6 pour le samedi.
+
+%d - Jour du mois sur deux chiffres.
+%b - Nom du mois abrégé dans la langue locale.
+%B - Nom complet du mois dans la langue locale.
+%m - Numéro du mois sur deux chiffres.
+%y - Année sur deux chiffres (sans le siècle).
+%Y - Année complète sur quatre chiffres.
+
+%H - Heure à deux chiffres de 00 à 23.
+%I - Heure à deux chiffres pour les horloges 12h (01 à 12).
+%p - Équivalent local à AM/PM.
+%M - Minutes sur deux chiffres.
+%S - Secondes sur deux chiffres.
+%f - Microsecondes sur 6 chiffres.
+%z - Décalage UTC sous la forme +HHMM ou -HHMM.
+%Z - Nom du fuseau horaire.
+
+%j - Numéro du jour dans l’année sur trois chiffres.
+%U - Numéro de la semaine à deux chiffres (où dimanche est considéré comme le premier jour de la semaine). Tous les jours de l’année précédent le premier dimanche sont considérés comme appartenant à la semaine 0.
+%W - Numéro de la semaine à deux chiffres (où lundi est considéré comme le premier jour de la semaine). Tous les jours de l’année précédent le premier lundi sont considérés comme appartenant à la semaine 0.
+
+%c - Représentation locale de la date et de l’heure.
+%x - Représentation locale de la date.
+%X - Représentation locale de l’heure.
+
+%G - Année complète ISO 8601 représentant l’année contenant la plus grande partie de la semaine ISO (%V).
+%u - Jour de la semaine ISO 8601 où 1 correspond au lundi.
+%V - Numéro de la semaine ISO 8601, avec lundi étant le premier jour de la semaine. La semaine 01 est la semaine contenant le 4 janvier.
+
+%% - Un caractère '%' littéral.
+
+Si vous avez utilisé une distribution Linux, vous devez être familiarisé avec ce processus.\
+''',
+
+		'about_running_on': 'Exécution sur {}',
+		'about_project_page': 'Page du projet: ',
+		'about_beta_build': '\nAVERTISSEMENT: Il s\'agit d\'une pré-version, elle peut donc contenir des bogues et/ou des problèmes.\n',
+		'about_licensed': 'Licencié sous la licence {}',
+
+		'bytes': 'octet(s)',
+		'KB': 'Ko',
+		'KiB': 'Kio',
+		'MB': 'Mo',
+		'MiB': 'Mio',
+		'GB': 'Go',
+		'GiB': 'Gio',
+		'TB': 'To',
+		'TiB': 'Tio',
+		'PB': 'Po',
+		'PiB': 'Pio',
+		'EB': 'Eo',
+		'EiB': 'Eio',
+		'ZB': 'Zo',
+		'ZiB': 'Zio',
+		'YB': 'Yo',
+		'YiB': 'Yio',
+
+		'menubar_rbin_sid': 'Votre SID: ',
+		'menubar_rbin_reload': 'Recharger la Corbeille',
+		'menubar_rbin_explorer_bin': 'Ouvrir la Corbeille dans l\'Explorateur de fichiers',
+		'menubar_rbin_exit': 'Quitter',
+		'menubar_settings': 'Paramètres',
+		'menubar_settings_rbin_view': 'Vue Corbeille',
+		'menubar_settings_rbin_view_felike': 'Similaire à l\'Explorateur de fichiers',
+		'menubar_settings_rbin_view_legacy': 'Ancienne vue',
+		'menubar_settings_sort_method': 'Tri de fichiers',
+		'menubar_settings_sort_method_natsort': 'Tri naturel',
+		'menubar_settings_sort_method_lexico': 'Tri lexicographique',
+		'menubar_settings_sort_method_folders_first': 'Afficher les dossiers en premier',
+		'menubar_settings_dtformat': 'Formatage de la date et de l\'heure...',
+		'menubar_settings_language': 'Langue',
+		'menubar_settings_language_system': 'Langue du système',
+		'menubar_settings_language_info': 'Infos pour la langue actuelle',
+		'menubar_settings_locale': 'Paramètres régionaux',
+		'menubar_settings_locale_lang': 'Paramètres régionaux de la langue',
+		'menubar_settings_locale_system': 'Paramètres régionaux du système',
+		'menubar_settings_locale_custom': 'Coutume',
+		'menubar_settings_locale_custom2': ' ({})',
+		'menubar_settings_updates': 'Mises à jour',
+		'menubar_settings_updates_auto': 'Vérifier les mises à jour au démarrage',
+		'menubar_settings_updates_prerelease': 'Vérifier les versions préliminaires',
+		'menubar_help_update': 'Vérifier les mises à jour',
+		'menubar_help_about': 'À propos de {}',
+
+		'msgbox_error': 'Erreur',
+		'msgbox_warning': 'Avertissement',
+		'msgbox_notice': 'Avis',
+		'msgbox_no_formatting': 'Cette chaîne de caractères n\'a pas de formatage. Continuer quand même?',
+		'msgbox_blank': 'Cette chaîne de caractères ne peut pas être vide!',
+		'msgbox_discard': 'Voulez-vous vraiment annuler vos modifications?',
+		'msgbox_discard_item': 'Êtes-vous sûr de vouloir supprimer cet élément?',
+		'msgbox_overwrite': 'Le fichier {} existe déjà à son emplacement d\'origine. Voulez-vous l\'écraser?',
+		'msgbox_error_unsupported_version': ': Version de fichier de métadonnées inconnue ou non prise en charge',
+		'msgbox_error_invalid_metadata': ': Fichier de métadonnées non valide',
+		'msgbox_error_unicode': 'Cette chaîne de caractères contient des caractères Unicode non pris en charge par cette version de Tcl/Tk.',
+		'msgbox_unsupported_tcl': 'Il semble que vous exécutiez Python {}, qui a une version de Tcl/Tk qui ne prend pas en charge certains caractères Unicode.\n\nVoulez-vous continuer?',
+		'msgbox_rbin_name_change': 'Voulez-vous mettre à jour l\'extension du nom de fichier de la Corbeille avec la nouvelle que vous avez définie?\nSi vous le laissez tel quel, vous pourriez voir des "problèmes" lors de son ouverture.',
+		'msgbox_rbin_name_change_2': 'La modification de la propriété "Dossier" nécessitera la suppression des anciennes données de l\'élément.\nSouhaitez-vous poursuivre la suppression? Si vous sélectionnez Non, la propriété "Dossier" ne changera pas.',
+		'msgbox_n_a': 'Pas mis en œuvre',
+		'msgbox_n_a_desc': 'Cette fonctionnalité n\'est pas implémentée dans cette version de {}. Désolé!',
+		'msgbox_reload_confirm': 'Voulez-vous vraiment recharger la Corbeille? Vous reviendrez au menu principal.',
+		'msgbox_reload_next_reboot': 'Les modifications prendront effet la prochaine fois que vous ouvrirez le programme.',
+		'msgbox_not_in_rb': 'Cet article n\'est plus dans la Corbeille.\nIl sera désormais supprimé de cette liste.',
+		'msgbox_folder_warn': 'Lors de l\'ouverture d\'un dossier dans la Corbeille, vous ne pouvez ouvrir aucun sous-dossier tant que le dossier n\'est pas restauré.\n\nVoulez-vous continuer?',
+		'msgbox_lnk_warn': '''\
+Le fichier que vous avez ouvert était un fichier de raccourci (.lnk).
+
+Si le fichier ou le dossier auquel ce raccourci renvoie n'existe plus, Windows affichera une invite vous demandant si vous souhaitez supprimer le raccourci.
+Si vous sélectionnez Oui, le raccourci sera PERMANENTEMENT SUPPRIMÉ de la Corbeille.
+
+Si vous avez ouvert le raccourci par accident, ne vous inquiétez pas, appuyez simplement sur Non.
+
+Voulez-vous continuer?\
+''',
+		'msgbox_restore': 'Restaurer cet élément?',
+		'msgbox_restore_desc': 'Voulez-vous restaurer cet élément à son emplacement d\'origine?',
+		'msgbox_restore_all': 'Restaurer tous les éléments?',
+		'msgbox_restore_all_desc': 'Voulez-vous restaurer tous les éléments ici à leur emplacement d\'origine?',
+		'msgbox_delete': 'Supprimer cet élément?',
+		'msgbox_delete_desc': 'Êtes-vous sûr de vouloir supprimer définitivement cet élément?\nVOUS NE POUVEZ PAS ANNULER CECI!',
+		'msgbox_delete_all': 'Vider la Corbeille?',
+		'msgbox_delete_all_desc': 'Êtes-vous sûr de vouloir effacer tous vos éléments supprimés?\nRéfléchissez bien avant de faire cela, car vous ne pourrez peut-être pas les récupérer à l\'avenir...',
+
+		'ogname': 'Nom',
+		'oglocation': 'Emplacement d\'origine',
+		'type': 'Type',
+		'size': 'Taille',
+		'deldate': 'Heure de suppression',
+		'rbin_in': 'Corbeille dans {}',
+		'discard': 'Jeter',
+		'preview': 'Prévisualisation',
+		'reset': 'Rétablir les paramètres par défaut',
+		'help': 'Aider',
+		'edit': 'Modifier',
+
+		'back': 'Dos',
+		'cancel': 'Annuler',
+
+		'ftype_desc_folder': 'Dossier de fichiers',
+		'ftype_desc_txt': 'Document texte',
+		'ftype_desc_ini': 'Paramètres de configuration',
+		'ftype_desc_ps1': 'Script Windows PowerShell',
+		'ftype_desc_ico': 'Icon',
+		'ftype_desc_file': 'Fichier',
+		'ftype_desc_file_space': 'Fichier {}',
+
+		'main_loading': 'Chargement de la Corbeille, veuillez patienter...',
+		'main_warning': 'AVERTISSEMENT:',
+		'main_rb_corrupt': 'La Corbeille sur le lecteur {} est corrompue.',
+		'main_rbin_empty': 'La Corbeille est vide!',
+		'main_rbin_metadata_unsupported_version': 'REMARQUE: Votre Corbeille contient des fichiers de métadonnées que RBEditor ne peut pas lire.',
+		'main_new_item': 'Nouvel élément',
+		'main_restore_all': 'Restaurer tous les éléments',
+		'main_empty_rb': 'Vider la Corbeille',
+		'main_open': 'Ouvrir',
+		'main_delete': 'Supprimer',
+		'main_restore': 'Restaurer',
+		'main_properties': 'Propriétés',
+		'main_folder': '<dossier>',
+
+		'itemproperties_properties': 'Propriétés de l\'élément',
+		'itemproperties_advanced': 'Informations avancées',
+		'itemproperties_reduced': 'Infos réduites',
+		'itemproperties_ogname': 'Nom d\'origine',
+		'itemproperties_ogname_unterminated': '(chaîne de caractères non terminée)',
+		'itemproperties_real_size': 'Taille réelle',
+		'itemproperties_size_disk': 'Taille dans la Corbeille',
+		'itemproperties_metadata_size': 'Taille du fichier de métadonnées',
+		'itemproperties_rbin_name_i': 'Nom de fichier dans la Corbeille (fichier de métadonnées)',
+		'itemproperties_rbin_name_r': 'Nom de fichier dans la Corbeille (fichier de données)',
+		'itemproperties_rbin_location': 'Emplacement',
+		'itemproperties_version': 'Version du fichier de métadonnées',
+		'itemproperties_version_text': 'Version ',
+		'itemproperties_location_asterisk': '* Les chemins relatifs partent du Bureau',
+		'itemproperties_location_asterisk_2': '** Vous ne pouvez pas accéder au contenu réel de ce dossier avec l\'Explorateur de fichiers',
+
+		'new_item_edit': 'Modifier l\'élément existant',
+		'new_item_path': 'Chemin du fichier d\'origine',
+		'new_item_folder': 'Dossier?',
+		'new_item_bytes_note': '(en octets)',
+		'new_item_ext': 'Extension',
+		'new_item_name': 'Nouvel élément de la Corbeille',
+		'new_item_version_warning': 'Cette version du fichier de métadonnées ne peut pas être lue par cette version de Windows. Continuer quand même?',
+		'new_item_size_int_error': 'La taille doit être un entier!',
+		'new_item_size_out_of_range': 'La taille doit être comprise entre -(2^63) et 2^63-1',
+		'new_item_error_unsupported_version': 'Version du fichier de métadonnées non valide!',
+		'new_item_invalid_path': 'Le chemin du fichier ne doit pas contenir les caractères suivants:',
+		'new_item_invalid_path_2': 'Le chemin du fichier doit inclure des répertoires!',
+		'new_item_invalid_path_3': 'Chemin de fichier invalide!',
+		'new_item_invalid_path_4': 'Le chemin du fichier doit être absolu!',
+
+		'new_item_hacker_mode': 'Mode hacker',
+		'new_item_hacker_mode_note': '(pour contourner cette erreur, activez le mode hacker!)',
+		'new_item_hacker_mode_enable': 'Activer le mode hacker',
+		'new_item_hacker_mode_no_terminator': 'Chemin d\'accès au fichier non terminé (métadonnées version 2 uniquement)',
+
+		'locale_chooser_title': 'Sélection de paramètres régionaux',
+		'locale_chooser_choose': 'Sélectionnez un paramètre régional:',
+
+		'dtpicker_title': 'Sélecteur de date et d\'heure',
+		'dtpicker_type': 'Type d\'entrée',
+		'dtpicker_type_basic': 'Basique',
+		'dtpicker_day': 'Jour',
+		'dtpicker_month': 'Mois',
+		'dtpicker_year': 'Année',
+		'dtpicker_hour': 'Heures',
+		'dtpicker_minute': 'Minutes',
+		'dtpicker_second': 'Secondes',
+		'dtpicker_microsecond': 'Microsecondes',
+		'dtpicker_ft_header': 'Heure (format FILETIME)',
+		'dtpicker_ft_learn_more': 'En savoir plus sur FILETIME',
+		'dtpicker_ft_int_error': 'FILETIME doit être un entier!',
+		'dtpicker_ft_out_of_range': 'FILETIME n\'est pas dans la plage valide!',
+
+		'updater_title': 'Actualisateur',
+		'updater_checking': 'Vérification des mises à jour...',
+		'updater_donotclose': 'NE PAS fermer le programme lors\nde la recherche de mises à jour',
+		'updater_exceeded': 'Limite de débit de l\'API GitHub dépassée!\nVeuillez réessayer plus tard.',
+		'updater_offline': 'Impossible de se connecter à internet. Veuillez\nréessayer lorsque vous disposerez d\'une connexion\nInternet stable.',
+		'updater_unknown_error': 'Impossible de vérifier les mises à jour!\nVeuillez réessayer plus tard.',
+		'updater_newupdate': 'Une mise à jour est disponible!',
+		'updater_currver': 'Version actuelle: ',
+		'updater_newver': 'Nouvelle version:  ',
+		'updater_prerelease': ' (pré-version)',
+		'updater_latest': 'Vous utilisez déjà la dernière version.',
+		'updater_download': 'Visite la page de téléchargement',
 	},
 }
