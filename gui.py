@@ -56,8 +56,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev3'
-internal_version = 'v1.0.0-dev3'
+version = '1.0.0-dev3.1'
+internal_version = 'v1.0.0-dev3.1'
 prerelease = True
 
 license = 'MIT'
@@ -1991,8 +1991,6 @@ class Updater:
 
 	def check_updates(self, prerelease):
 		self.progress = 0
-
-		return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
 		if not self.check_internet():
 			return {
