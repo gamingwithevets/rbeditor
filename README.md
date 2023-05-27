@@ -89,9 +89,22 @@ After checking everything, run `python -m PyInstaller rbeditor.spec` (if you get
 
 # Q&A
 **Q: Why do I have to use this? I can just use the regular Recycle Bin.**  
-A: Well, I'm not forcing you to use this in your daily lives. RBEditor is basically a Recycle Bin hacking tool with a fancy GUI, and in some places, is more developer-friendly than user-friendly. RBEditor *includes* features from the regular Recycle Bin, but *it's not a replacement for the Recycle Bin*. So if you don't want to hack your Recycle Bin, just use regular Recycle Bin instead!
+A: Well, I'm not forcing you to use this in your daily lives. You decide whether you want to use RBEditor or not. Plus, the program is a hacking tool, and if you don't want to hack your Recycle Bin, regular Recycle Bin is good enough.
+
+**Q: The program is too hard to use!**  
+A: That's reasonable. RBEditor is a Recycle Bin hacking tool, and it's aimed more towards tech nerds. It's not 100% user-friendly.
+
+**Q: How does the Recycle Bin work?**  
+A: [Read this blog post I wrote](https://gamingwithevets.github.io/blog/2023/01/15/rbin-docs.html). It's a bit childish, but it gets the job done.
+
+**Q: Are the EXE files safe?**  
+A: Absolutely! Binaries are compiled from the same source code, so it's 100% safe.
+
+**Q: I downloaded an EXE file, and it triggered an error!**  
+A: Usually this happens because the binary does not support your Windows version. Please check the version of the binary you downloaded and see the compatibility list above.
 
 **Q: I keep getting "An error has occurred" messages.**  
 A: Here's what you need to do:  
 1. Check if you're using an old version of RBEditor with the updater (at the time of me writing this, there is no production release of RBEditor, so you will need to enable checking for pre-release versions). Note that in some versions the updater might be error-prone as well, and in that case you can visit this repository (the repository URL is in the About RBEditor dialog).
 2. If the error persists, better [report it](https://github.com/gamingwithevets/rbeditor/issues)!
+
