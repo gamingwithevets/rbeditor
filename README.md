@@ -4,7 +4,8 @@ NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen
 
 **Supports Windows Vista - Windows 11**
 
-[See the official RBEditor GIF here!](https://s11.gifyu.com/images/rbeditor_gif.gif)
+![RBEditor v0.2.0 on W11](image.png)  
+<sub><sup><a href="https://s11.gifyu.com/images/rbeditor_gif.gif">(OUTDATED) RBEditor v1.3.0_01 GIF</a></sup></sub>
 
 [Download for Windows Vista, 7, 8, 8.1, 10, 11](../../releases/latest)  
 <details>
