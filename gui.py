@@ -56,8 +56,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev3.1'
-internal_version = 'v1.0.0-dev3.1'
+version = '1.0.0-dev3.2'
+internal_version = 'v1.0.0-dev3.2'
 prerelease = True
 
 license = 'MIT'
@@ -665,8 +665,7 @@ class GUI:
 		self.locale_default = 'en'
 		try: locale.setlocale(locale.LC_ALL, 'en')
 		except:
-			for l in self.locales:
-				if '-' not in l: self.locales.remove(l)
+			self.locales = [l for l in self.locales if '-' in l]
 			self.locale_default = 'en-US'
 
 		self.locale_tk = tk.StringVar(); self.locale_tk.set(self.locale_default)
@@ -813,7 +812,13 @@ class GUI:
 			try: locale.setlocale(locale.LC_ALL, self.language)
 			except: locale.setlocale(locale.LC_ALL, self.language_fallback_locales[self.language])
 		elif lo == 'system': locale.setlocale(locale.LC_ALL, '')
-		elif lo == 'custom': locale.setlocale(locale.LC_ALL, self.locale)
+		elif lo == 'custom':
+			try: locale.setlocale(locale.LC_ALL, self.locale)
+			except:
+				locale.setlocale(locale.LC_ALL, 'en-US')
+				self.locale_tk.set('en-US')
+				self.locale = self.locale_tk.get()
+				self.save_settings()
 
 	def set_prev_locale_option(self):
 		self.prev_locale_option = self.locale_option.get()
