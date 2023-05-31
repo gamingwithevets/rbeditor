@@ -55,7 +55,7 @@ For builds without EXE files, you can follow the steps below to build from sourc
 
 ## Requirements
 These are the minimum requirements to run and build RBEditor from source code:
-- At least [Python 3.6.0](https://www.python.org/downloads/release/python-360/)
+- At least [Python 3.6.0a4](https://www.python.org/downloads/release/python-360a4/)
 - [The WMI module](https://pypi.org/project/WMI/)
 - [The Requests library](https://pypi.org/project/requests/) (required to check for updates on versions [0.2.1](../../releases/tag/v0.2.1) and older)
 - [The PyInstaller module](https://pypi.org/project/pyinstaller/) (not required if you don't need to build)
