@@ -1,3 +1,5 @@
 wmi
+markdown
+tkhtmlview
 natsort
 wheel
