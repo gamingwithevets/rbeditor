@@ -44,7 +44,8 @@ RBEditor currently has these available languages:
 | Language | Version Added |
 |--|--|
 | English | Beta 1.0.0 |
-| French | v1.0.0-dev3 |
+| Spanish | 1.0.0-dev4 |
+| French | 1.0.0-dev3 |
 | Japanese | Beta 1.3.0 |
 | Vietnamese | Beta 1.0.0 |
 
