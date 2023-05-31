@@ -43,6 +43,7 @@ import webbrowser
 import collections
 import configparser
 import urllib.request
+import ctypes.wintypes
 from queue import Queue
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
@@ -56,8 +57,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev3.2'
-internal_version = 'v1.0.0-dev3.2'
+version = '1.0.0-dev4'
+internal_version = 'v1.0.0-dev4'
 prerelease = True
 
 license = 'MIT'
@@ -69,7 +70,7 @@ except ImportError:
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()
 
-def report_error(self = None, exc = None, val = None, tb = None, term = True):
+def report_error(self = None, exc = None, val = None, tb = None):
 	try: GUI.window.quit()
 	except AttributeError: pass
 
@@ -78,7 +79,7 @@ def report_error(self = None, exc = None, val = None, tb = None, term = True):
 
 	print(err_text)
 	tk.messagebox.showerror('Whoops!', err_text)
-	if term: sys.exit()
+	sys.exit()
 
 tk.Tk.report_callback_exception = report_error
 
@@ -88,10 +89,16 @@ class RBHandler:
 	def get_rbdir(self):
 		username = getpass.getuser()
 		wmic = wmi.WMI()
+
+		sid = ''
 		for user in wmic.Win32_UserAccount():
 			if user.Name == username:
 				sid = user.SID
 				break
+
+		if not sid:
+			tk.messagebox.showerror('Error', 'You are using RBEditor on a user with no associated SID (i.e. SYSTEM). RBEditor requires a user with an SID to work properly.')
+			sys.exit()
 
 		self.gui.sid = sid
 
@@ -131,7 +138,7 @@ class RBHandler:
 			bin_items_unsorted[item] = {
 			'ogpath': filedata['fname'],
 			'unterminated_str': filedata['unterminated_str'],
-			'type': self.gui.lang['ftype_desc_folder'] if dirtest else self.get_ftype_desc(ext),
+			'type': self.get_ftype_desc(dirtest, ext),
 			'ext': None if dirtest or not ext else ext,
 			'isdir': dirtest,
 			'size': filedata['fsize'],
@@ -151,20 +158,23 @@ class RBHandler:
 
 	def get_md_version(self, version): return f'{self.gui.lang["itemproperties_version_text"]}{version}'
 
-	def get_ftype_desc(self, ext):
-		if not ext: return self.gui.lang['ftype_desc_file']
-		# translations for these extensions are stored in the language packs themselves,
-		# therefore the file type descriptions also need to be stored in the program itself.
-		elif ext == '.txt': return self.gui.lang['ftype_desc_txt']
-		elif ext == '.ini': return self.gui.lang['ftype_desc_ini']
-		elif ext == '.ps1': return self.gui.lang['ftype_desc_ps1']
-		elif ext == '.ico': return self.gui.lang['ftype_desc_ico']
+	@staticmethod
+	def get_ftype_desc(is_dir, ext = None):
+
+		if is_dir:
+			path = f'{os.getenv("TEMP")}\\temp'
+			os.mkdir(path)
 		else:
-			try:
-				desc = winreg.QueryValue(HKCR, winreg.QueryValue(HKCR, ext))
-				if desc: return desc
-				else: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
-			except: return self.gui.lang['ftype_desc_file_space'].format(ext[1:].upper())
+			path = f'{os.getenv("TEMP")}\\temp{ext}'
+			with open(path, 'w') as f: pass
+
+		file_info = SHFILEINFOW()
+		result = ctypes.windll.shell32.SHGetFileInfoW(path, 0, ctypes.byref(file_info), ctypes.sizeof(file_info), 0x400)
+		ftype_desc = file_info.szTypeName
+
+		if is_dir: shutil.rmtree(path)
+		else: os.remove(path)
+		return ftype_desc
 
 	# https://stackoverflow.com/a/22325767 (modified)
 	@staticmethod
@@ -195,47 +205,12 @@ class RBHandler:
 		ft = 116444736000000000 + int((dt - datetime(1970, 1, 1, tzinfo = timezone.utc)).total_seconds() * 10000000)
 		return ft
 
-	def convert_size(self, size_bytes, extras = True):
-		def f(s): return f'{s:n}'
-
-		def add_digits(i, s):
-			if i != 0:
-				digits = 0
-				s_temp = s
-				while s_temp > 0:
-					digits += 1
-					s_temp //= 10
-
-				if digits == 1: return f(Decimal(f'{s:.2f}'))
-				elif digits == 2: return f(Decimal(f'{s:.1f}'))
-				elif digits == 3: return str(s)
-
-		def print_size(i, s, s_nostr, snl, mul): return f'{s if i <= len(snl) else f(round(size_bytes / math.pow(mul, len(snl))))} {snl[i-1] if i <= len(snl) else snl[-1]}'
-
-		if size_bytes == 0: return f'0 {self.gui.lang["bytes"]}'
-		elif size_bytes > 0:
-			size_names_pow2 = tuple(self.gui.lang[_] for _ in ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'))
-			i_pow2 = int(math.floor(math.log(size_bytes, 1024)))
-			s_pow2_notstr = size_bytes / math.pow(1024, i_pow2)
-
-			size_names_pow10 = tuple(self.gui.lang[_] for _ in ('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'))
-			i_pow10 = int(math.floor(math.log(size_bytes, 1000)))
-			s_pow10_notstr = size_bytes / math.pow(1000, i_pow10)
-
-			s_pow2 = add_digits(i_pow2, s_pow2_notstr)
-			s_pow10 = add_digits(i_pow10, s_pow10_notstr)
-
-			if i_pow10 == 0: return f'{size_bytes:n} {self.gui.lang["bytes"]}'
-			else:
-				if i_pow2 == 0:
-					string = f'{print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)}'
-					if extras: string += f' ({size_bytes:n} {self.gui.lang["bytes"]})'
-				else:
-					string = f'{print_size(i_pow2, s_pow2, s_pow2_notstr, size_names_pow2, 1024)}'
-					if extras: string += f' ({print_size(i_pow10, s_pow10, s_pow10_notstr, size_names_pow10, 1000)} - {size_bytes:n} {self.gui.lang["bytes"]})'
-		else: string = f'{size_bytes} {self.gui.lang["bytes"]}'
-
-		return string
+	@staticmethod
+	def convert_size(size):
+		shlwapi = ctypes.WinDLL('shlwapi', use_last_error=True)
+		buffer = ctypes.create_unicode_buffer(20)
+		result = shlwapi.StrFormatByteSizeW(ctypes.c_ulonglong(size), buffer, ctypes.sizeof(buffer))
+		return buffer.value
 
 	def read_metadata(self, file_path):
 		file_to_read = os.path.basename(file_path)
@@ -308,7 +283,7 @@ class RBHandler:
 
 		file_data += version.to_bytes(8, 'little')
 		if version == 2:
-			file_data += fsize.to_bytes(8, 'little')
+			file_data += fsize.to_bytes(8, 'little', signed = True)
 			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
 			fnamelen = len(fname)
 			fname += '\x00'
@@ -317,7 +292,7 @@ class RBHandler:
 			fname_b = fname.encode('utf-16le')
 			file_data += fname_b
 		elif version == 1:
-			file_data += fsize.to_bytes(8, 'little')
+			file_data += fsize.to_bytes(8, 'little', signed = True)
 			file_data += self.dt_to_filetime(deldate).to_bytes(8, 'little')
 			fnamelen = len(fname)
 			fname_b = fname.encode('utf-16le')
@@ -374,6 +349,7 @@ class GUI:
 
 		tk_font = tk.font.nametofont('TkDefaultFont')
 
+		self.font_size = tk_font.actual()['size']
 		self.bold_font = tk_font.copy()
 		self.bold_font.config(weight = 'bold')
 		self.underline_font = tk_font.copy()
@@ -405,6 +381,7 @@ class GUI:
 
 		self.languages = {
 		'en': 'English',
+		'es': 'Español',
 		'fr': 'Français',
 		'ja': '日本語',
 		'vi': 'Tiếng Việt',
@@ -412,6 +389,7 @@ class GUI:
 
 		self.language_fallback_locales = {
 		'en': 'en-US',
+		'es': 'es-ES',
 		'fr': 'fr-FR',
 		'ja': 'ja-JP',
 		'vi': 'vi-VN',
@@ -795,6 +773,7 @@ class GUI:
 				self.language_tk.set('en')
 				tk.messagebox.showwarning('Warning', f'Your system language is not available in this version of {name}.\n\n{name}\'s language has been set to English.')
 		else:
+			self.get_lang() # set system_language_unavailable flag
 			self.language = self.language_tk.get()
 			if self.language_tk.get() not in self.languages:
 				self.language_tk.set('en')
@@ -1128,7 +1107,7 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		size = item_info['size']
 		deldate = self.rbhandler.format_date(item_info['deldate'])
 
-		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size, False)}\n{self.lang["deldate"]}: {deldate}'
+		return f'{ogname}\n{self.lang["oglocation"]}: {oglocation}\n{self.lang["type"]}: {item_type}\n{self.lang["size"]}: {self.rbhandler.convert_size(size)}\n{self.lang["deldate"]}: {deldate}'
 
 	def delete_item(self, item, no_prompt = False, no_refresh = False):		
 		self.check_item_exist(item)
@@ -1139,7 +1118,7 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		path = f'{drive}:{self.rbdir}\\'
 
 		if not no_prompt:
-			if not tk.messagebox.askyesno(self.lang['msgbox_delete'], f'{self.lang["msgbox_delete_desc"]}\n\n{self.get_item_info_str(item)}', icon = 'warning', default = 'no'): return
+			if not tk.messagebox.askyesno(self.lang['msgbox_delete'], f'{self.lang["msgbox_delete_desc"]}\n\n{self.get_item_info_str(item)}', icon = 'warning'): return
 		try: os.remove(f'{path}$I{item}')
 		except OSError as e: tk.messagebox.showerror(self.lang['msgbox_error'], f'Error in delete operation:\n{e.filename}\n{e.strerror} ({e.errno})')
 
@@ -1279,7 +1258,7 @@ class DTMenu:
 		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.win)
 		self.gui.draw_blank(master = self.win)
 		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
-		ttk.Button(button_frame, text = 'OK', command = self.save).pack(side = 'left')
+		ttk.Button(button_frame, text = self.gui.lang['ok'], command = self.save).pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['discard'], command = self.discard).pack(side = 'right')
 		self.gui.draw_blank(side = 'bottom', master = self.win)
 		ttk.Button(self.win, text = self.gui.lang['reset'], command = self.reset).pack(side = 'bottom')
@@ -1572,7 +1551,7 @@ class NewItem:
 			else: self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
 			self.gui.draw_blank()
 			ttk.Button(text = self.gui.lang['discard'], command = lambda: self.discard()).pack(side = 'bottom')
-			ok_button = ttk.Button(text = 'OK', command = self.set_return)
+			ok_button = ttk.Button(text = self.gui.lang['ok'], command = self.set_return)
 			ok_button.pack(side = 'bottom')
 
 			path_frame = tk.Frame()
@@ -1698,7 +1677,7 @@ class LocaleChooser:
 		self.gui.draw_label(self.gui.lang['locale_chooser_choose'], justify = 'center', master = self.win)
 		ttk.Combobox(self.win, textvariable = self.gui.locale_tk, values = self.gui.locales).pack()
 		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
-		ttk.Button(button_frame, text = 'OK', command = self.save).pack(side = 'left')
+		ttk.Button(button_frame, text = self.gui.lang['ok'], command = self.save).pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.cancel).pack(side = 'right')
 
 class DTPicker:
@@ -1757,7 +1736,7 @@ class DTPicker:
 			if w not in (self.type_frame, self.header_frame): w.destroy()
 
 		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
-		self.ok_button = ttk.Button(button_frame, text = 'OK', command = lambda: tk.messagebox.showerror(*[self.gui.lang['qmark']]*2)); self.ok_button.pack(side = 'left')
+		self.ok_button = ttk.Button(button_frame, text = self.gui.lang['ok'], command = lambda: tk.messagebox.showerror(*[self.gui.lang['qmark']]*2)); self.ok_button.pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'right')
 
 		self.type = self.types[self.types_names.index(self.type_name.get())]
@@ -1828,7 +1807,7 @@ class DTPicker:
 
 			self.gui.new_item.deldate_TEMP = test_deldate.replace()
 		except Exception:
-			tk.messagebox.showerror(self.gui.lang['msgbox_error'], 'Invalid date!')
+			tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['dtpicker_date_invalid'])
 			return			
 
 		# this code will only run if no exception occurs (due to return statement)
@@ -1880,7 +1859,7 @@ class UpdaterGUI:
 			if auto: self.auto = True
 
 			self.win = tk.Toplevel(self.gui.window)
-			self.win.geometry('300x120')
+			self.win.geometry('400x200')
 			self.win.resizable(False, False)
 			self.win.protocol('WM_DELETE_WINDOW', self.quit)
 			self.win.title(self.gui.lang['updater_title'])
@@ -1926,7 +1905,7 @@ class UpdaterGUI:
 			if update_info['exceeded']: self.draw_msg(self.gui.lang['updater_exceeded'])
 			elif update_info['nowifi']: self.draw_msg(self.gui.lang['updater_offline'])
 			else: self.draw_msg(self.gui.lang['updater_unknown_error'])
-		elif update_info['newupdate']: self.draw_download_msg(update_info['title'], update_info['tag'], update_info['prerelease'])
+		elif update_info['newupdate']: self.draw_download_msg(update_info['title'], update_info['tag'], update_info['prerelease'], update_info['body'])
 		else: self.draw_msg(self.gui.lang['updater_latest'])
 
 	def draw_check(self):
@@ -1946,7 +1925,7 @@ class UpdaterGUI:
 			self.gui.draw_label(msg, justify = 'center', master = self.win)
 			ttk.Button(self.win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 
-	def draw_download_msg(self, title, tag, prever):
+	def draw_download_msg(self, title, tag, prever, body):
 		if self.auto:
 			self.win.deiconify()
 			self.gui.set_title()
@@ -1958,6 +1937,17 @@ class UpdaterGUI:
 ''', justify = 'center', master = self.win)
 		ttk.Button(self.win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
 		ttk.Button(self.win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
+
+		self.gui.draw_blank(master = self.win)
+
+		packages_missing = []
+		try: import markdown
+		except: packages_missing.append('markdown')
+		try: import tkhtmlview
+		except: packages_missing.append('tkhtmlview')
+
+		if packages_missing: self.gui.draw_label(f'Missing package(s): {", ".join(packages_missing)}', font = self.gui.bold_font, master = self.win)
+		else: tkhtmlview.HTMLScrolledText(self.win, html = markdown.markdown(body).replace('../..', 'https://github.com/gamingwithevets/rbeditor').replace('<p>', f'<p style="font-size: {self.gui.font_size}px;">')).pack()
 		
 		if self.auto: self.win.deiconify()
 
@@ -2072,7 +2062,8 @@ class Updater:
 					'prerelease': False,
 					'error': False,
 					'title': response['name'],
-					'tag': response['tag_name']
+					'tag': response['tag_name'],
+					'body': response['body']
 					}
 				else:
 					return {
@@ -2081,35 +2072,35 @@ class Updater:
 					'error': False
 					}
 			else:
-				for version in versions:
-					if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+				if not self.check_internet(): return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
 
-					response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{version}')
-					if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
-					try:
-						testvar = response['message']
-						if 'API rate limit exceeded for' in testvar:
-							return {
-							'newupdate': False,
-							'error': True,
-							'exceeded': True
-							}
-						else: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': False}
-					except: pass
-					if currvertime < response['published_at']:
-						return {
-						'newupdate': True,
-						'prerelease': response['prerelease'],
-						'error': False,
-						'title': response['name'],
-						'tag': response['tag_name']
-						}
-					else:
+				response = self.request(f'https://api.github.com/repos/{self.username}/{self.reponame}/releases/tags/{versions[0]}')
+				if response is None: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': True}
+				try:
+					testvar = response['message']
+					if 'API rate limit exceeded for' in testvar:
 						return {
 						'newupdate': False,
-						'unofficial': False,
-						'error': False
+						'error': True,
+						'exceeded': True
 						}
+					else: return {'newupdate': False, 'error': True, 'exceeded': False, 'nowifi': False}
+				except: pass
+				if currvertime < response['published_at']:
+					return {
+					'newupdate': True,
+					'prerelease': response['prerelease'],
+					'error': False,
+					'title': response['name'],
+					'tag': response['tag_name'],
+					'body': response['body']
+					}
+				else:
+					return {
+					'newupdate': False,
+					'unofficial': False,
+					'error': False
+					}
 		except:
 			return {
 			'newupdate': False,
@@ -2131,6 +2122,15 @@ class OSVERSIONINFOEXW(ctypes.Structure):
 				('wSuiteMask', ctypes.c_ushort),
 				('wProductType', ctypes.c_byte),
 				('wReserved', ctypes.c_byte)]
+
+class SHFILEINFOW(ctypes.Structure):
+	_fields_ = [
+		('hIcon', ctypes.wintypes.HANDLE),
+		('iIcon', ctypes.c_int),
+		('dwAttributes', ctypes.wintypes.DWORD),
+		('szDisplayName', ctypes.wintypes.WCHAR * 260),
+		('szTypeName', ctypes.wintypes.WCHAR * 80)
+	]
 
 # https://stackoverflow.com/a/16198198
 class VerticalScrolledFrame(tk.Frame):

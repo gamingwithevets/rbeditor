@@ -157,16 +157,9 @@ Do you want to continue?\
 		'help': 'Help',
 		'edit': 'Edit',
 
+		'ok': 'OK',
 		'back': 'Back',
 		'cancel': 'Cancel',
-
-		'ftype_desc_folder': 'File folder',
-		'ftype_desc_txt': 'Text Document',
-		'ftype_desc_ini': 'Configuration settings',
-		'ftype_desc_ps1': 'Windows PowerShell Script',
-		'ftype_desc_ico': 'Icon',
-		'ftype_desc_file': 'File',
-		'ftype_desc_file_space': '{} File',
 
 		'main_loading': 'Loading Recycle Bin, please wait...',
 		'main_warning': 'WARNING:',
@@ -196,7 +189,7 @@ Do you want to continue?\
 		'itemproperties_version': 'Metadata file version',
 		'itemproperties_version_text': 'Version ',
 		'itemproperties_location_asterisk': '* Relative paths start from the Desktop',
-		'itemproperties_location_asterisk_2': '** You cannot access this folder\'s real contents with the File Explorer',
+		'itemproperties_location_asterisk_2': '** You cannot access this folder\'s real contents with File Explorer',
 
 		'new_item_edit': 'Edit existing item',
 		'new_item_path': 'Original file path',
@@ -206,7 +199,7 @@ Do you want to continue?\
 		'new_item_name': 'New Recycle Bin item',
 		'new_item_version_warning': 'This metadata file version cannot be read by this version of Windows. Continue anyway?',
 		'new_item_size_int_error': 'Size must be an integer!',
-		'new_item_size_out_of_range': 'Size must be between -(2^63) and 2^63-1',
+		'new_item_size_out_of_range': 'Size must be between -9223372036854775808 and 9223372036854775807',
 		'new_item_error_unsupported_version': 'Invalid metadata file version!',
 		'new_item_invalid_path': 'File path must not have the following characters:',
 		'new_item_invalid_path_2': 'File path must include directories!',
@@ -231,6 +224,7 @@ Do you want to continue?\
 		'dtpicker_minute': 'Minutes',
 		'dtpicker_second': 'Seconds',
 		'dtpicker_microsecond': 'Microseconds',
+		'dtpicker_date_invalid': 'Invalid date!',
 		'dtpicker_ft_header': 'Time (FILETIME format)',
 		'dtpicker_ft_learn_more': 'Learn more about FILETIME',
 		'dtpicker_ft_int_error': 'FILETIME must be an integer!',
@@ -386,14 +380,6 @@ Bạn có muốn tiếp tục không?\
 		'back': 'Quay lại',
 		'cancel': 'Huỷ bỏ',
 
-		'ftype_desc_folder': 'Thư mục tệp',
-		'ftype_desc_txt': 'Tài liệu văn bản',
-		'ftype_desc_ini': 'Cài đặt cấu hình',
-		'ftype_desc_ps1': 'Tập lệnh Windows PowerShell',
-		'ftype_desc_ico': 'Biếu tượng',
-		'ftype_desc_file': 'Tệp',
-		'ftype_desc_file_space': 'Tệp {}',
-
 		'main_loading': 'Đang tải Thùng rác, vui lòng đợi...',
 		'main_warning': 'CẢNH BÁO:',
 		'main_rb_corrupt': 'Thùng rác trên ổ đĩa {} bị hỏng.',
@@ -432,7 +418,7 @@ Bạn có muốn tiếp tục không?\
 		'new_item_name': 'Khoản mục Thùng rác mới',
 		'new_item_version_warning': 'Phiên bản tệp siêu dữ liệu này không thể đọc được bằng phiên bản Windows này. Bạn có vẫn muốn tiếp tục không?',
 		'new_item_size_int_error': 'Kích thước phải là một số nguyên!',
-		'new_item_size_out_of_range': 'Kích thước phải từ -(2^63) đến 2^63-1',
+		'new_item_size_out_of_range': 'Kích thước phải từ -9223372036854775808 đến 9223372036854775807',
 		'new_item_error_unsupported_version': 'Phiên bản tệp siêu dữ liệu không hợp lệ!',
 		'new_item_invalid_path': 'Đường dẫn tập tin không được có các ký tự sau:',
 		'new_item_invalid_path_2': 'Đường dẫn tệp phải bao gồm thư mục!',
@@ -457,6 +443,7 @@ Bạn có muốn tiếp tục không?\
 		'dtpicker_minute': 'Phút',
 		'dtpicker_second': 'Giây',
 		'dtpicker_microsecond': 'Micro giây',
+		'dtpicker_date_invalid': 'Ngày không hợp lệ!',
 		'dtpicker_ft_header': 'Thời gian (Định dạng FILETIME)',
 		'dtpicker_ft_learn_more': 'Tìm hiểu thêm về FILETIME',
 		'dtpicker_ft_int_error': 'FILETIME phải là một số nguyên!',
@@ -616,14 +603,6 @@ Linux ディストリビューションを使用したことがある場合は�
 		'back': '戻る',
 		'cancel': 'キャンセル',
 
-		'ftype_desc_folder': 'ファイル フォルダー',
-		'ftype_desc_txt': 'テキスト ドキュメント',
-		'ftype_desc_ini': '構成設定',
-		'ftype_desc_ps1': 'Windows PowerShell スクリプト',
-		'ftype_desc_ico': 'アイコン',
-		'ftype_desc_file': 'ファイル',
-		'ftype_desc_file': '{} ファイル',
-
 		'main_loading': 'ごみ箱を読み込んでいます。 お待ちください…',
 		'main_warning': '警告：',
 		'main_rb_corrupt': 'ドライブ {} のごみ箱が破損しています。',
@@ -662,7 +641,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'new_item_name': '新しいごみ箱項目',
 		'new_item_version_warning': 'このメタデータ ファイルのバージョンは、このバージョンの Windows では読み取ることができません。 それでも続行しますか？',
 		'new_item_size_int_error': 'サイズは整数でなければなりません！',
-		'new_item_size_out_of_range': 'サイズは -(2^63) から 2^63-1 の間でなければなりません。',
+		'new_item_size_out_of_range': 'サイズは -9223372036854775808 から 9223372036854775807 の間でなければなりません。',
 		'new_item_error_unsupported_version': '無効なメタデータファイルのバージョンです！',
 		'new_item_invalid_path': 'ファイルパスに次の文字を含めることはできません：',
 		'new_item_invalid_path_2': 'ファイルパスにはディレクトリを含める必要があります！',
@@ -687,6 +666,7 @@ Linux ディストリビューションを使用したことがある場合は�
 		'dtpicker_minute': '分',
 		'dtpicker_second': '秒',
 		'dtpicker_microsecond': 'マイクロ秒',
+		'dtpicker_date_invalid': '日付が無効です！',
 		'dtpicker_ft_header': '時刻（FILETIME形式）',
 		'dtpicker_ft_learn_more': 'FILETIME について詳しく見る',
 		'dtpicker_ft_int_error': 'FILETIME は整数でなければなりません！',
@@ -802,7 +782,6 @@ Si vous avez utilisé une distribution Linux, vous devez être familiarisé avec
 		'menubar_settings_locale_lang': 'Paramètres régionaux de la langue',
 		'menubar_settings_locale_system': 'Paramètres régionaux du système',
 		'menubar_settings_locale_custom': 'Coutume',
-		'menubar_settings_locale_custom2': ' ({})',
 		'menubar_settings_updates': 'Mises à jour',
 		'menubar_settings_updates_auto': 'Vérifier les mises à jour au démarrage',
 		'menubar_settings_updates_prerelease': 'Vérifier les versions préliminaires',
@@ -863,14 +842,6 @@ Voulez-vous continuer?\
 		'back': 'Dos',
 		'cancel': 'Annuler',
 
-		'ftype_desc_folder': 'Dossier de fichiers',
-		'ftype_desc_txt': 'Document texte',
-		'ftype_desc_ini': 'Paramètres de configuration',
-		'ftype_desc_ps1': 'Script Windows PowerShell',
-		'ftype_desc_ico': 'Icon',
-		'ftype_desc_file': 'Fichier',
-		'ftype_desc_file_space': 'Fichier {}',
-
 		'main_loading': 'Chargement de la Corbeille, veuillez patienter...',
 		'main_warning': 'AVERTISSEMENT:',
 		'main_rb_corrupt': 'La Corbeille sur le lecteur {} est corrompue.',
@@ -909,7 +880,7 @@ Voulez-vous continuer?\
 		'new_item_name': 'Nouvel élément de la Corbeille',
 		'new_item_version_warning': 'Cette version du fichier de métadonnées ne peut pas être lue par cette version de Windows. Continuer quand même?',
 		'new_item_size_int_error': 'La taille doit être un entier!',
-		'new_item_size_out_of_range': 'La taille doit être comprise entre -(2^63) et 2^63-1',
+		'new_item_size_out_of_range': 'La taille doit être comprise entre -9223372036854775808 et 9223372036854775807',
 		'new_item_error_unsupported_version': 'Version du fichier de métadonnées non valide!',
 		'new_item_invalid_path': 'Le chemin du fichier ne doit pas contenir les caractères suivants:',
 		'new_item_invalid_path_2': 'Le chemin du fichier doit inclure des répertoires!',
@@ -934,6 +905,7 @@ Voulez-vous continuer?\
 		'dtpicker_minute': 'Minutes',
 		'dtpicker_second': 'Secondes',
 		'dtpicker_microsecond': 'Microsecondes',
+		'dtpicker_date_invalid': 'Date invalide!',
 		'dtpicker_ft_header': 'Heure (format FILETIME)',
 		'dtpicker_ft_learn_more': 'En savoir plus sur FILETIME',
 		'dtpicker_ft_int_error': 'FILETIME doit être un entier!',
@@ -951,5 +923,227 @@ Voulez-vous continuer?\
 		'updater_prerelease': ' (pré-version)',
 		'updater_latest': 'Vous utilisez déjà la dernière version.',
 		'updater_download': 'Visite la page de téléchargement',
+	},
+	'es': {
+		'info': '''\
+Español - 5to idioma de RBEditor
+(c) 2022-2023 GamingWithEvets Inc.\
+''',
+
+		'qmark': '?',
+
+		'title': 'EDITOR DE PAPELERA DE RECICLAJE - RBEditor',
+		'title_dtformat': 'Formato de fecha y hora',
+		'dtformat': 'Formato de fecha y hora',
+		'dtformat_preview': 'Cómo se ve el formato de fecha y hora cuando se usa:',
+		'dtformat_guide': '''\
+Origen:
+https://docs.python.org/es/3.8/library/datetime.html#strftime-and-strptime-format-codes
+https://docs.python.org/es/3.9/library/datetime.html#strftime-and-strptime-format-codes
+
+%a - Día de la semana como nombre abreviado según la configuración regional.
+%A - Día de la semana como nombre completo de la localidad.
+%w - Día de la semana como un número decimal, donde 0 es domingo y 6 es sábado.
+
+%d - Día del mes como un número decimal rellenado con ceros.
+%b - Mes como nombre abreviado según la configuración regional.
+%B - Mes como nombre completo según la configuración regional.
+%m - Mes como un número decimal rellenado con ceros.
+%y - Año sin siglo como un número decimal rellenado con ceros.
+%Y - Año con siglo como número decimal.
+
+%H - Hora (reloj de 24 horas) como un número decimal rellenado con ceros.
+%I - Hora (reloj de 12 horas) como un número decimal rellenado con ceros.
+%p - El equivalente de la configuración regional de AM o PM.
+%M - Minuto como un número decimal rellenado con ceros.
+%S - Segundo como un número decimal rellenado con ceros.
+%f - Microsegundo como un número decimal, rellenado con ceros a la izquierda.
+%z - Desplazamiento (offset) UTC en la forma '±HHMM[SS[.ffffff]]'.
+%Z - Nombre de zona horaria.
+
+%j - Día del año como un número decimal rellenado con ceros.
+%U - Número de semana del año (domingo como primer día de la semana) como un número decimal rellenado con ceros. Todos los días en un nuevo año anterior al primer domingo se consideran en la semana 0.
+%W - Número de semana del año (lunes como primer día de la semana) como número decimal. Todos los días en un nuevo año anterior al primer lunes se consideran en la semana 0.
+
+%c - Representación apropiada de fecha y hora de la configuración regional.
+%x - Representación de fecha apropiada de la configuración regional.
+%X - Representación de la hora apropiada de la configuración regional.
+
+%G - ISO 8601 año con siglo que representa el año que contiene la mayor parte de la semana ISO (%V).
+%u - ISO 8601 día de la semana como un número decimal donde 1 es lunes.
+%V - ISO 8601 semana como un número decimal con lunes como primer día de la semana. La semana 01 es la semana que contiene el 4 de enero.
+
+%% - Un carácter literal '%'.
+
+Si ha utilizado una distribución de Linux, debe estar familiarizado con este proceso.\
+''',
+
+		'about_running_on': 'Ejecutándose en {}',
+		'about_project_page': 'Página del proyecto: ',
+		'about_beta_build': '\nADVERTENCIA: Esta es una versión preliminar, por lo tanto, puede tener errores y/o fallas.\n',
+		'about_licensed': 'Licenciado bajo la licencia {}',
+
+		'menubar_rbin_sid': 'Su SID: ',
+		'menubar_rbin_reload': 'Recargar Papelera de reciclaje',
+		'menubar_rbin_explorer_bin': 'Abra la Papelera de reciclaje en el Explorador de archivos',
+		'menubar_rbin_exit': 'Salida',
+		'menubar_settings': 'Ajustes',
+		'menubar_settings_rbin_view': 'Vista de Papelera de reciclaje',
+		'menubar_settings_rbin_view_felike': 'Similar al Explorador de archivos',
+		'menubar_settings_rbin_view_legacy': 'Vista heredada',
+		'menubar_settings_sort_method': 'Clasificación de archivos',
+		'menubar_settings_sort_method_natsort': 'Clasificación natural',
+		'menubar_settings_sort_method_lexico': 'Clasificación lexicográfica',
+		'menubar_settings_sort_method_folders_first': 'Mostrar carpetas primero',
+		'menubar_settings_dtformat': 'Formato de fecha y hora...',
+		'menubar_settings_language': 'Lenguaje',
+		'menubar_settings_language_system': 'Lenguaje del sistema',
+		'menubar_settings_language_info': 'Información para el lenguaje actual',
+		'menubar_settings_locale': 'Configuración regional',
+		'menubar_settings_locale_lang': 'Configuración regional del lenguaje',
+		'menubar_settings_locale_system': 'Configuración regional del sistema',
+		'menubar_settings_locale_custom': 'Costumbre',
+		'menubar_settings_updates': 'Actualizaciones',
+		'menubar_settings_updates_auto': 'Buscar actualizaciones al inicio',
+		'menubar_settings_updates_prerelease': 'Buscar versiones preliminares',
+		'menubar_help_update': 'Buscar actualizaciones',
+		'menubar_help_about': 'Acerca de {}',
+
+		'msgbox_error': 'Error',
+		'msgbox_warning': 'Advertencia',
+		'msgbox_notice': 'Aviso',
+		'msgbox_no_formatting': 'Esta cadena de caracteres no tiene formato. ¿De todas maneras, continúe?',
+		'msgbox_blank': '¡Esta cadena de caracteres no puede estar en blanco!',
+		'msgbox_discard': '¿Estás seguro de que quieres descartar tus cambios?',
+		'msgbox_discard_item': '¿Estás seguro de que quieres descartar este artículo?',
+		'msgbox_overwrite': 'El archivo {} ya existe en su ubicación original. ¿Quieres sobreescribirlo?',
+		'msgbox_error_unsupported_version': ': Versión de archivo de metadatos desconocida o no admitida',
+		'msgbox_error_invalid_metadata': ': Archivo de metadatos no válido',
+		'msgbox_error_unicode': 'Esta cadena contiene caracteres Unicode que no son compatibles con esta versión de Tcl/Tk.',
+		'msgbox_unsupported_tcl': 'Parece que está ejecutando Python {}, que tiene una versión de Tcl/Tk que no admite algunos caracteres Unicode.\n\n¿Quieres continuar?',
+		'msgbox_rbin_name_change': '¿Desea actualizar la extensión del nombre del archivo de la papelera de reciclaje con la nueva que configuró?\nSi lo deja como está, es posible que vea "problemas" al abrirlo.',
+		'msgbox_rbin_name_change_2': 'Cambiar la propiedad "Carpeta" requerirá la eliminación de los datos antiguos del elemento.\n¿Desea continuar con la eliminación? Si selecciona No, la propiedad "Carpeta" no cambiará.',
+		'msgbox_n_a': 'No se ha implementado',
+		'msgbox_n_a_desc': 'Esta función no está implementada en esta versión de {}. ¡Lo siento!',
+		'msgbox_reload_confirm': '¿Está seguro de que desea volver a cargar la Papelera de reciclaje? Volverá al menú principal.',
+		'msgbox_reload_next_reboot': 'Los cambios surtirán efecto la próxima vez que abra el programa.',
+		'msgbox_not_in_rb': 'Este elemento ya no está en la Papelera de reciclaje.\nAhora será eliminado de esta lista.',
+		'msgbox_folder_warn': 'Al abrir una carpeta en la Papelera de reciclaje, no puede abrir ninguna subcarpeta hasta que se restaure la carpeta.\n\n¿Quieres continuar?',
+		'msgbox_lnk_warn': '''\
+El archivo que abrió era un archivo de acceso directo (.lnk).
+
+Si el archivo o la carpeta a la que se vincula este acceso directo ya no existe, Windows mostrará un mensaje que le preguntará si desea eliminar el acceso directo.
+Si selecciona Sí, el acceso directo se ELIMINARÁ PERMANENTEMENTE de la Papelera de reciclaje.
+
+Si abrió el acceso directo por accidente, no debe temer, simplemente presione No.
+
+¿Quieres continuar?\
+''',
+		'msgbox_restore': '¿Restaurar este elemento?',
+		'msgbox_restore_desc': '¿Quieres restaurar este elemento a su ubicación original?',
+		'msgbox_restore_all': '¿Restaurar todos los elementos?',
+		'msgbox_restore_all_desc': '¿Desea restaurar todos los elementos aquí a su ubicación original?',
+		'msgbox_delete': '¿Eliminar este elemento?',
+		'msgbox_delete_desc': '¿Está seguro de que desea eliminar este elemento de forma permanente?\n¡ESTO NO SE PUEDE DESHACER!',
+		'msgbox_delete_all': '¿Vacía la Papelera de reciclaje?',
+		'msgbox_delete_all_desc': '¿Estás seguro de que quieres borrar todos los elementos eliminados?\nPiénsalo dos veces antes de hacer esto, porque es posible que no puedas recuperarlos en el futuro...',
+
+		'ogname': 'Nombre',
+		'oglocation': 'Ubicación original',
+		'type': 'Tipo',
+		'size': 'Tamaño',
+		'deldate': 'Tiempo de eliminación',
+		'rbin_in': 'Papelera de reciclaje en {}',
+		'discard': 'Desechar',
+		'preview': 'Avance',
+		'reset': 'Restablecer los valores predeterminados',
+		'help': 'Ayuda',
+		'edit': 'Editar',
+
+		'ok': 'Aceptar',
+		'back': 'Atrás',
+		'cancel': 'Cancelar',
+
+		'main_loading': 'Cargando Papelera de reciclaje, por favor espere...',
+		'main_warning': 'ADVERTENCIA:',
+		'main_rb_corrupt': 'La Papelera de reciclaje en la unidad {} está dañada.',
+		'main_rbin_empty': '¡La Papelera de reciclaje está vacía!',
+		'main_rbin_metadata_unsupported_version': 'NOTA: Su Papelera de reciclaje contenía archivos de metadatos que RBEditor no puede leer.',
+		'main_new_item': 'Nuevo elemento',
+		'main_restore_all': 'Restaurar todos los elementos',
+		'main_empty_rb': 'Vaciar Papelera de reciclaje',
+		'main_open': 'Abierto',
+		'main_delete': 'Borrar',
+		'main_restore': 'Restaurar',
+		'main_properties': 'Propiedades',
+		'main_folder': '<carpeta>',
+
+		'itemproperties_properties': 'Propiedades del elemento',
+		'itemproperties_advanced': 'Información avanzada',
+		'itemproperties_reduced': 'Información reducida',
+		'itemproperties_ogname': 'Nombre original',
+		'itemproperties_ogname_unterminated': '(cadena de caracteres sin terminar)',
+		'itemproperties_real_size': 'Tamaño real',
+		'itemproperties_size_disk': 'Tamaño en Papelera de reciclaje',
+		'itemproperties_metadata_size': 'Tamaño del archivo de metadatos',
+		'itemproperties_rbin_name_i': 'Nombre de archivo en la papelera de reciclaje (archivo de metadatos)',
+		'itemproperties_rbin_name_r': 'Nombre de archivo en la papelera de reciclaje (archivo de datos)',
+		'itemproperties_rbin_location': 'Ubicación',
+		'itemproperties_version': 'Versión del archivo de metadatos',
+		'itemproperties_version_text': 'Versión ',
+		'itemproperties_location_asterisk': '* Las rutas relativas comienzan desde el Escritorio',
+		'itemproperties_location_asterisk_2': '** No puede acceder al contenido real de esta carpeta con el Explorador de archivos',
+
+		'new_item_edit': 'Editar elemento existente',
+		'new_item_path': 'Ruta del archivo original',
+		'new_item_folder': '¿Carpeta?',
+		'new_item_bytes_note': '(en bytes)',
+		'new_item_ext': 'Extensión',
+		'new_item_name': 'Nuevo elemento de Papelera de reciclaje',
+		'new_item_version_warning': 'Esta versión del archivo de metadatos no puede ser leída por esta versión de Windows. ¿De todas maneras, continúe?',
+		'new_item_size_int_error': '¡El tamaño debe ser un número entero!',
+		'new_item_size_out_of_range': 'El tamaño debe estar entre -9223372036854775808 y 9223372036854775807',
+		'new_item_error_unsupported_version': '¡Versión de archivo de metadatos no válida!',
+		'new_item_invalid_path': 'La ruta del archivo no debe tener los siguientes caracteres:',
+		'new_item_invalid_path_2': '¡La ruta del archivo debe incluir directorios!',
+		'new_item_invalid_path_3': '¡Ruta de archivo no válida!',
+		'new_item_invalid_path_4': '¡La ruta del archivo debe ser absoluta!',
+
+		'new_item_hacker_mode': 'Modo hacker',
+		'new_item_hacker_mode_note': '(para evitar este error, ¡habilite el modo hacker!)',
+		'new_item_hacker_mode_enable': 'Habilitar modo hacker',
+		'new_item_hacker_mode_no_terminator': 'Ruta de archivo sin terminar (solo versión 2 de metadatos)',
+
+		'locale_chooser_title': 'Selección de configuración regional',
+		'locale_chooser_choose': 'Seleccione una localidad:',
+
+		'dtpicker_title': 'Selector de fecha y hora',
+		'dtpicker_type': 'Tipo de entrada',
+		'dtpicker_type_basic': 'Básico',
+		'dtpicker_day': 'Día',
+		'dtpicker_month': 'Mes',
+		'dtpicker_year': 'Año',
+		'dtpicker_hour': 'Horas',
+		'dtpicker_minute': 'Minutos',
+		'dtpicker_second': 'Segundos',
+		'dtpicker_microsecond': 'Microsegundos',
+		'dtpicker_date_invalid': '¡Fecha invalida!',
+		'dtpicker_ft_header': 'Hora (formato FILETIME)',
+		'dtpicker_ft_learn_more': 'Más información sobre FILETIME',
+		'dtpicker_ft_int_error': '¡FILETIME debe ser un número entero!',
+		'dtpicker_ft_out_of_range': '¡FILETIME no está en el rango válido!',
+
+		'updater_title': 'Actualizador',
+		'updater_checking': 'Comprobando actualizaciones...',
+		'updater_donotclose': 'NO cierre el programa\nmientras busca actualizaciones',
+		'updater_exceeded': '¡Se excedió el límite de velocidad de la API de GitHub!\nPor favor, inténtelo de nuevo más tarde.',
+		'updater_offline': 'Incapaz de conectarse a Internet. Vuelva a intentarlo\ncuando tenga una conexión a Internet estable.',
+		'updater_unknown_error': '¡No se pueden buscar actualizaciones!\nPor favor, inténtelo de nuevo más tarde.',
+		'updater_newupdate': '¡Hay disponible una actualización!',
+		'updater_currver': 'Versión actual: ',
+		'updater_newver': 'Nueva versión: ',
+		'updater_prerelease': ' Nuevo versión:',
+		'updater_latest': 'Ya estás usando la última versión.',
+		'updater_download': 'Visite la página de descarga',
 	},
 }

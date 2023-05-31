@@ -4,7 +4,7 @@ if os.name != 'nt':
 	print('ERROR: This application must be run on Windows NT 6.0 or higher.')
 	sys.exit()
 	
-python_requirement = (3, 6, 0)
+python_requirement = (3, 6, 0, 'alpha', 4)  # 3.6.0a4
 
 import platform
 if sys.version_info < python_requirement:
