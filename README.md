@@ -66,10 +66,11 @@ However, to get the best experience possible, here are the recommended requireme
 - [The WMI module](https://pypi.org/project/WMI/)
 - [The Requests library](https://pypi.org/project/requests/) (required to check for updates on versions [0.2.1](../../releases/tag/v0.2.1) and older)
 - [The `natsort` module](https://pypi.org/project/natsort/) (requires Python 3.7 and newer; required to use natural sorting on versions [1.0.0-dev2](../../releases/tag/v1.0.0-dev2) and newer)
+- [The Markdown module](https://pypi.org/project/Markdown/) and [the `tkhtmlview` module](https://pypi.org/project/tkhtmlview/) (required to display the release notes in the updater)
 - [The PyInstaller module](https://pypi.org/project/pyinstaller/) (not required if you don't need to build)
 - At least Windows Vista (note: RBEditor **cannot** be run or built on Unix-based systems)
 
-If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with **WMI, Requests, `natsort` and PyInstaller**.
+If you are willing to build a binary for use by the public, I used a **Windows Vista x64 virtual machine** equipped with **Python 3.7.6 x64 and x86**, both with all modules listed above.
 - The need for Windows Vista is because binaries built on a Windows version will only work on that version and beyond (except for Windows 11; binaries compiled on Windows 11 will work on Windows 10).
 - The two architectures are to obviously compile both x64 and x86 binaries.
 
