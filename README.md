@@ -109,7 +109,4 @@ A: Absolutely! Binaries are compiled from the same source code, so it's 100% saf
 A: Usually this happens because the binary does not support your Windows version. Please check the version of the binary you downloaded and see the compatibility list above.
 
 **Q: I keep getting "An error has occurred" messages.**  
-A: Here's what you need to do:  
-1. Check if you're using an old version of RBEditor with the updater (at the time of me writing this, there is no production release of RBEditor, so you will need to enable checking for pre-release versions). Note that in some versions the updater might be error-prone as well, and in that case you can visit this repository (the repository URL is in the About RBEditor dialog).
-2. If the error persists, better [report it](https://github.com/gamingwithevets/rbeditor/issues)!
-
+A: [Read here](CONTRIBUTING.md#bug-hunting).
