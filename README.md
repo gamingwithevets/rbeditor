@@ -68,7 +68,7 @@ However, to get the best experience possible, here are the recommended requireme
 - [The Requests library](https://pypi.org/project/requests/) (required to check for updates on versions [0.2.1](../../releases/tag/v0.2.1) and older)
 - [The `natsort` module](https://pypi.org/project/natsort/) (requires Python 3.7 and newer; required to use natural sorting on versions [1.0.0-dev2](../../releases/tag/v1.0.0-dev2) and newer)
 - Modules required to display release notes in the updater:
-- - [The Markdown module](https://pypi.org/project/Markdown/) and [the `tkhtmlview` module](https://pypi.org/project/tkhtmlview/)
+- - [The Markdown module](https://pypi.org/project/Markdown/) and [the TkinterWeb module](https://pypi.org/project/tkinterweb/)
 - - [The `mdformat` module](https://pypi.org/project/mdformat/). Specifically, you need to install all GFM packages (`mdformat-gfm`, `mdformat-frontmatter`, and `mdformat-footnote`).
 - [The PyInstaller module](https://pypi.org/project/pyinstaller/) (not required if you don't need to build)
 - At least Windows Vista (note: RBEditor **cannot** be run or built on Unix-based systems)
