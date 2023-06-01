@@ -43,11 +43,11 @@ RBEditor currently has these available languages:
 
 | Language | Version Added |
 |--|--|
-| English | Beta 1.0.0 |
-| Spanish | 1.0.0-dev4 |
-| French | 1.0.0-dev3 |
-| Japanese | Beta 1.3.0 |
-| Vietnamese | Beta 1.0.0 |
+| English | [Beta 1.0.0](../../releases/tag/b1.0.0) |
+| Spanish | [1.0.0-dev4](../../releases/tag/v1.0.0-dev4) |
+| French | [1.0.0-dev3](../../releases/tag/v1.0.0-dev3) |
+| Japanese | [Beta 1.3.0](../../releases/tag/b1.3.0) |
+| Vietnamese | [Beta 1.0.0](../../releases/tag/b1.0.0) |
 
 # Running and building from source code
 If you're just wanting to run RBEditor, download the appropriate EXE file in [the Releases page](../../releases/latest).
