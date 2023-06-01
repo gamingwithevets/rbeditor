@@ -20,8 +20,9 @@ assignees: gamingwithevets
 [If you are running RBEditor from source code, and your Python environment has a console, please provide the exception traceback here.]
 ```
 
-## Environment
-- RBEditor version:
+## Have you updated to the latest pre-release version?
+
+## Python environment
 - Python version and architecture:
 - Windows build and architecture:
 
