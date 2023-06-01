@@ -58,8 +58,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev4.1'
-internal_version = 'v1.0.0-dev4.1'
+version = '1.0.0-dev4.2'
+internal_version = 'v1.0.0-dev4.2'
 prerelease = True
 
 license = 'MIT'
@@ -1949,7 +1949,7 @@ class UpdaterGUI:
 		self.gui.draw_blank(master = self.win)
 
 		packages_missing = []
-		for package in ('markdown', 'mdformat-gfm', 'mdformat-frontmatter', 'mdformat-footnote', 'tkinterweb'):
+		for package in ('markdown', 'mdformat-gfm', 'tkinterweb'):
 			if not self.package_installed(package): packages_missing.append(package)
 
 		if packages_missing: self.gui.draw_label(f'Missing package(s): {", ".join(packages_missing[:2])}{" and " + str(len(packages_missing) - 2) + " others" if len(packages_missing) > 2 else ""}', font = self.gui.bold_font, master = self.win)
@@ -1960,6 +1960,7 @@ class UpdaterGUI:
 
 			html = tkinterweb.HtmlFrame(self.win, messages_enabled = False)
 			html.load_html(markdown.markdown(mdformat.text(body)).replace('../..', 'https://github.com/gamingwithevets/rbeditor'))
+			html.on_link_click(webbrowser.open_new_tab)
 			html.pack()
 		
 		if self.auto: self.win.deiconify()

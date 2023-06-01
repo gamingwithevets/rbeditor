@@ -1,8 +1,6 @@
 wmi
 markdown
 mdformat-gfm
-mdformat-frontmatter
-mdformat-footnote
 tkinterweb
 natsort
 wheel
