@@ -42,6 +42,7 @@ import subprocess
 import webbrowser
 import collections
 import configparser
+import pkg_resources
 import urllib.request
 import ctypes.wintypes
 from queue import Queue
@@ -57,8 +58,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev4'
-internal_version = 'v1.0.0-dev4'
+version = '1.0.0-dev4.1'
+internal_version = 'v1.0.0-dev4.1'
 prerelease = True
 
 license = 'MIT'
@@ -349,7 +350,6 @@ class GUI:
 
 		tk_font = tk.font.nametofont('TkDefaultFont')
 
-		self.font_size = tk_font.actual()['size']
 		self.bold_font = tk_font.copy()
 		self.bold_font.config(weight = 'bold')
 		self.underline_font = tk_font.copy()
@@ -829,7 +829,8 @@ class GUI:
 			orig_init = widget_class.__init__
 			def new_init(self, *args, **kwargs):
 				orig_init(self, *args, **kwargs)
-				self.config(takefocus = False)
+				try: self.config(takefocus = False)
+				except: pass
 			widget_class.__init__ = new_init
 
 		set_takefocus_false(tk.Widget)
@@ -1925,6 +1926,13 @@ class UpdaterGUI:
 			self.gui.draw_label(msg, justify = 'center', master = self.win)
 			ttk.Button(self.win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 
+	@staticmethod
+	def package_installed(package):
+		try: pkg_resources.get_distribution(package)
+		except: return False
+
+		return True
+
 	def draw_download_msg(self, title, tag, prever, body):
 		if self.auto:
 			self.win.deiconify()
@@ -1941,13 +1949,18 @@ class UpdaterGUI:
 		self.gui.draw_blank(master = self.win)
 
 		packages_missing = []
-		try: import markdown
-		except: packages_missing.append('markdown')
-		try: import tkhtmlview
-		except: packages_missing.append('tkhtmlview')
+		for package in ('markdown', 'mdformat-gfm', 'mdformat-frontmatter', 'mdformat-footnote', 'tkinterweb'):
+			if not self.package_installed(package): packages_missing.append(package)
 
-		if packages_missing: self.gui.draw_label(f'Missing package(s): {", ".join(packages_missing)}', font = self.gui.bold_font, master = self.win)
-		else: tkhtmlview.HTMLScrolledText(self.win, html = markdown.markdown(body).replace('../..', 'https://github.com/gamingwithevets/rbeditor').replace('<p>', f'<p style="font-size: {self.gui.font_size}px;">')).pack()
+		if packages_missing: self.gui.draw_label(f'Missing package(s): {", ".join(packages_missing[:2])}{" and " + str(len(packages_missing) - 2) + " others" if len(packages_missing) > 2 else ""}', font = self.gui.bold_font, master = self.win)
+		else:
+			import markdown
+			import mdformat
+			import tkinterweb
+
+			html = tkinterweb.HtmlFrame(self.win, messages_enabled = False)
+			html.load_html(markdown.markdown(mdformat.text(body)).replace('../..', 'https://github.com/gamingwithevets/rbeditor'))
+			html.pack()
 		
 		if self.auto: self.win.deiconify()
 
