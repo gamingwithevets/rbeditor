@@ -58,9 +58,9 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0-dev4.2'
-internal_version = 'v1.0.0-dev4.2'
-prerelease = True
+version = '1.0.0'
+internal_version = 'v1.0.0'
+prerelease = False
 
 license = 'MIT'
 
@@ -98,7 +98,7 @@ class RBHandler:
 				break
 
 		if not sid:
-			tk.messagebox.showerror('Error', 'You are using RBEditor on a user with no associated SID (i.e. SYSTEM). RBEditor requires a user with an SID to work properly.')
+			tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_no_sid'])
 			sys.exit()
 
 		self.gui.sid = sid
@@ -327,7 +327,7 @@ class RBHandler:
 		return widgets
 
 class GUI:
-	def __init__(self, window):
+	def __init__(self):
 		self.version = version
 
 		try:
@@ -336,7 +336,7 @@ class GUI:
 			self.enable_natural_sort = True
 		except ImportError: self.enable_natural_sort = False
 
-		self.window = window
+		self.window = tk.Tk()
 
 		self.temp_path = temp_path
 
@@ -653,12 +653,14 @@ class GUI:
 		self.auto_check_updates = tk.BooleanVar(); self.auto_check_updates.set(True)
 		self.check_prerelease_version = tk.BooleanVar(); self.check_prerelease_version.set(False)
 
-		self.enable_rbin_metadata_unsupported_version_msg = False
+		self.debug = False
 
 		self.appdata_folder = f'{os.getenv("LOCALAPPDATA")}\\{name}'
+		self.save_to_cwd = False
 		self.ini = configparser.ConfigParser()
 		self.parse_settings()
 
+		self.enable_rbin_metadata_unsupported_version_msg = False
 		self.refreshing = True
 		self.reload_confirm_func = self.reload_confirm_default
 
@@ -680,18 +682,37 @@ class GUI:
 		self.menubar()
 
 	def start_main(self):
-		if self.auto_check_updates.get(): self.updater_gui.init_window(True)
+		self.updates_checked = False
+
+		if self.auto_check_updates.get(): threading.Thread(target = self.auto_update).start()
+		else: self.updates_checked = True
 		self.main()
 
-	def parse_settings(self):
-		self.save_to_cwd = False
+	def auto_update(self):
+		self.update_thread = ThreadWithResult(target = self.updater_gui.updater.check_updates, args = (True,))
+		self.update_thread.start()
+		i = 0
+		j = 0
+		mult = 5000
+		while self.update_thread.is_alive():
+			if i == mult*4:
+				i += 1
+				j = 1
+			else: i = i-1 if j else i+1
+			if i == 0: j = 0
+			print(' '*(int(i/mult)) + '.' + ' '*(5-int(i/mult)), end = '\r')
+		print('\r     ', end = '\r')
+		update_info = self.update_thread.result
+		if update_info['newupdate']: self.updater_gui.init_window(True, (update_info['title'], update_info['tag'], update_info['prerelease'], update_info['body']))
+		self.updates_checked = True
 
+	def parse_settings(self):
 		# load override settings
 		if os.path.exists(os.path.join(os.getcwd(), 'settings.ini')):
 			self.ini.read('settings.ini')
 			self.save_to_cwd = True
 		# load normal settings
-		else: self.ini.read(f'{self.appdata_folder}\\settings.ini')
+		else: self.ini.read(os.path.join(self.appdata_folder, 'settings.ini'))
 
 		sects = self.ini.sections()
 		if sects:
@@ -734,13 +755,20 @@ class GUI:
 				try: self.check_prerelease_version.set(self.ini.getboolean('updater', 'check_prerelease_version'))
 				except: pass
 
+			if 'dont_touch_this_area_unless_you_know_what_youre_doing' in sects:
+				try: self.debug = self.ini.getboolean('dont_touch_this_area_unless_you_know_what_youre_doing', 'debug')
+				except: pass
+
 		self.set_lang()
 		self.set_locale()
 		self.save_settings()
 
 	def save_settings(self):
+		sects = self.ini.sections()
+
 		# settings are set individually to retain compatibility between versions
-		self.ini['settings'] = {}
+
+		if 'settings' not in sects: self.ini['settings'] = {}
 		self.ini['settings']['language'] = self.language_tk.get()
 		self.ini['settings']['locale'] = self.locale_tk.get()
 		self.ini['settings']['locale_option'] = self.locale_option.get()
@@ -749,15 +777,18 @@ class GUI:
 		self.ini['settings']['sort_method'] = self.sort_method_tk.get()
 		self.ini['settings']['folders_first'] = str(self.folders_first_tk.get())
 
-		self.ini['updater'] = {}
+		if 'updater' not in sects: self.ini['updater'] = {}
 		self.ini['updater']['auto_check_updates'] = str(self.auto_check_updates.get())
 		self.ini['updater']['check_prerelease_version'] = str(self.check_prerelease_version.get())
+
+		if 'dont_touch_this_area_unless_you_know_what_youre_doing' not in sects: self.ini['dont_touch_this_area_unless_you_know_what_youre_doing'] = {}
+		self.ini['dont_touch_this_area_unless_you_know_what_youre_doing']['debug'] = str(self.debug)
 
 		if self.save_to_cwd:
 			with open(os.path.join(os.getcwd(), 'settings.ini'), 'w') as f: self.ini.write(f)
 
 		if not os.path.exists(self.appdata_folder): os.makedirs(self.appdata_folder)
-		with open(f'{self.appdata_folder}\\settings.ini', 'w') as f: self.ini.write(f)
+		with open(os.path.join(self.appdata_folder, 'settings.ini'), 'w') as f: self.ini.write(f)
 
 	def get_lang(self):
 		slang = locale.windows_locale[ctypes.windll.kernel32.GetUserDefaultUILanguage()]
@@ -807,8 +838,6 @@ class GUI:
 		self.set_lang(True)
 		self.setting_change()
 
-	def n_a(self): tk.messagebox.showinfo(self.lang['msgbox_n_a'], self.lang['msgbox_n_a_desc'].format(name))
-
 	def refresh(self, load_func = False):
 		self.refreshing = True
 
@@ -818,7 +847,7 @@ class GUI:
 		self.window.protocol('WM_DELETE_WINDOW', self.quit)
 		self.reload_confirm_func = self.reload_confirm_default
 
-		if load_func: self.main()
+		if load_func: self.main(False)
 
 	def set_title(self, custom_str = None): self.window.title(f'{name} {version}{" - " + custom_str if custom_str != None else ""}')
 
@@ -836,11 +865,16 @@ class GUI:
 		set_takefocus_false(tk.Widget)
 		set_takefocus_false(ttk.Widget)
 
+	def main_focus(self, event):
+		if event.widget.__str__ == '.': self.window.focus()
+
 	def init_window(self):
 		self.window.geometry(f'{self.display_w}x{self.display_h}')
 		self.window.resizable(False, False)
 		self.window.bind('<F5>', self.reload_confirm)
+		self.window.bind('<Control-e>', self.fexplorer_open)
 		self.window.bind('<F12>', self.version_details)
+		self.window.bind('<1>', self.main_focus)
 		self.window.bind('<Button-3>', self.playsound)
 		self.window.option_add('*tearOff', False)
 		
@@ -868,28 +902,6 @@ class GUI:
 	def playsound(self, event):
 		if self.context_menu_open: self.context_menu_open = False
 		else: winsound.PlaySound('.Default', winsound.SND_ASYNC)
-
-	def draw_label(self, text, font = None, color = 'black', bg = None, side = 'top', anchor = 'center', recwidth = None, recheight = None, justify = None, master = None):
-		if master == None: master = self.window
-
-		def conv_anchor(a):
-			if a == 'topleft': return 'nw'
-			elif a == 'midtop': return 'n' 
-			elif a == 'topright': return 'ne'
-			elif a == 'midleft': return 'w'
-			elif a == 'midright': return 'e'
-			elif a == 'bottomleft': return 'sw'
-			elif a == 'midbottom': return 's'
-			elif a == 'bottomright': return 'se'
-			else: return a
-
-		anc = conv_anchor(anchor)
-		text = ttk.Label(master, text = text, font = font, foreground = color, background = bg, width = recwidth, height = recheight, justify = justify, anchor = anc)
-		text.pack(side = side, anchor = anc)
-
-	def draw_blank(self, side = 'top', master = None):
-		if master == None: master = self.window
-		self.draw_label('', side = side, master = master)
 
 	def about_menu(self):
 		syst = platform.system(); syst += ' x64' if platform.machine().endswith('64') else ' x86'
@@ -921,8 +933,9 @@ SOFTWARE.\
 ''')
 
 	def version_details(self, event = None):
-		dnl = '\n\n'
-		tk.messagebox.showinfo(f'{name} version details', f'''\
+		if self.debug:
+			dnl = '\n\n'
+			tk.messagebox.showinfo(f'{name} version details', f'''\
 {name} {version}{" (prerelease)" if prerelease else ""}
 Internal version: {internal_version}
 
@@ -950,14 +963,23 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		self.menubar() # update the menubar
 		tk.messagebox.showinfo(self.lang['msgbox_notice'], self.lang['msgbox_reload_next_reboot'])
 
+	def disable_debug(self):
+		if tk.messagebox.askyesno('Warning', 'To re-enable debug mode you must set the debug flag to True in settings.ini.\nContinue?', icon = 'warning'):
+			self.debug = False
+			self.save_settings()
+			self.menubar() # update the menubar
+
+	@staticmethod
+	def fexplorer_open(event = None): subprocess.Popen('explorer shell:recyclebinfolder', shell = True)
+
 	def menubar(self):
 		menubar = tk.Menu()
 
 		rbin_menu = tk.Menu(menubar)
-		rbin_menu.add_command(label = self.lang['menubar_rbin_sid'] + self.sid, state = 'disabled')
-		rbin_menu.add_separator()
 		rbin_menu.add_command(label = self.lang['menubar_rbin_reload'], command = self.reload_confirm, accelerator = 'F5')
-		rbin_menu.add_command(label = self.lang['menubar_rbin_explorer_bin'], command = lambda: subprocess.Popen('explorer shell:recyclebinfolder', shell = True))
+		rbin_menu.add_command(label = self.lang['menubar_rbin_explorer_bin'], command = self.fexplorer_open, accelerator = 'Ctrl+E')
+		rbin_menu.add_separator()
+		rbin_menu.add_command(label = 'SID', command = lambda: tk.messagebox.showinfo('SID', self.lang['menubar_rbin_sid'] + self.sid))
 		rbin_menu.add_separator()
 		rbin_menu.add_command(label = self.lang['menubar_rbin_exit'], command = self.quit)
 		menubar.add_cascade(label = 'RBEditor', menu = rbin_menu)
@@ -980,14 +1002,12 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 
 		settings_menu.add_separator()
 
-		self.lang_menu = tk.Menu(settings_menu)
-		self.lang_menu.add_command(label = self.lang['menubar_settings_language_info'], command = lambda: tk.messagebox.showinfo(self.lang['menubar_help_about'].format(self.languages[self.language]), self.lang['info']))
-		self.lang_menu.add_separator()
-		self.lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang, state = 'disabled' if self.system_language_unavailable else 'normal')
-		for i in self.languages: self.lang_menu.add_radiobutton(label = self.languages[i], variable = self.language_tk, value = i, command = self.change_lang)
-		self.ena_dis_lang()
-		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = self.lang_menu)
-
+		lang_menu = tk.Menu(settings_menu)
+		lang_menu.add_command(label = self.lang['menubar_settings_language_info'], command = lambda: tk.messagebox.showinfo(self.lang['menubar_help_about'].format(self.languages[self.language]), self.lang['info']))
+		lang_menu.add_separator()
+		lang_menu.add_radiobutton(label = self.lang['menubar_settings_language_system'], variable = self.language_tk, value = 'system', command = self.change_lang, state = 'disabled' if self.system_language_unavailable else 'normal')
+		for i in self.languages: lang_menu.add_radiobutton(label = self.languages[i], variable = self.language_tk, value = i, command = self.change_lang)
+		settings_menu.add_cascade(label = self.lang['menubar_settings_language'], menu = lang_menu)
 		locale_menu = tk.Menu(settings_menu)
 		locale_menu.add_radiobutton(label = self.lang['menubar_settings_locale_lang'], variable = self.locale_option, value = 'lang', command = self.set_prev_locale_option)
 		locale_menu.add_radiobutton(label = self.lang['menubar_settings_locale_system'], variable = self.locale_option, value = 'system', command = self.set_prev_locale_option)
@@ -1001,6 +1021,16 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		updater_settings_menu.add_checkbutton(label = self.lang['menubar_settings_updates_prerelease'], variable = self.check_prerelease_version, command = self.save_settings)
 		settings_menu.add_cascade(label = self.lang['menubar_settings_updates'], menu = updater_settings_menu)
 
+		if self.debug:
+			settings_menu.add_separator()
+			debug_menu = tk.Menu(settings_menu)
+			debug_menu.add_command(label = 'Version details', command = self.version_details, accelerator = 'F12')
+			debug_menu.add_separator()
+			debug_menu.add_command(label = 'Updater test', command = lambda: self.updater_gui.init_window(debug = True))
+			debug_menu.add_separator()
+			debug_menu.add_command(label = 'Disable debug mode', command = self.disable_debug)
+			settings_menu.add_cascade(label = 'Debug', menu = debug_menu)
+
 		menubar.add_cascade(label = self.lang['menubar_settings'], menu = settings_menu)
 
 		help_menu = tk.Menu(menubar)
@@ -1010,16 +1040,24 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 
 		self.window.config(menu = menubar)
 
-	def ena_dis_lang(self):
-		for i in self.languages:
-			# try-except nest used in case of an unused language in language_names
-			try: self.lang_menu.entryconfig(i, state = 'normal')
-			except: pass
+	def main(self, call_mainloop = True):
+		self.refresh()
 
-	def main(self):
-		try: self.draw_label(self.lang['title'], font = self.bold_font)
-		except: self.draw_label(self.lang['title'])
-		self.draw_blank()
+		try: ttk.Label(text = self.lang['title'], font = self.bold_font).pack()
+		except: ttk.Label(text = self.lang['title']).pack()
+		ttk.Label().pack()
+
+		if not self.updates_checked:
+			checking_text = ttk.Label(text = self.lang['updater_checking']); checking_text.pack()
+			self.window.after(0, lambda: self.main2(True, checking_text))
+			self.window.mainloop()
+		elif call_mainloop:
+			self.window.after(0, self.main2)
+			self.window.mainloop()
+		else: self.main2()
+
+	def main2(self, destroy_text = False, label_obj = None):
+		if destroy_text: label_obj.destroy()
 
 		loading_text = ttk.Label(text = self.lang['main_loading']); loading_text.pack()
 		self.window.update()
@@ -1031,36 +1069,35 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 		loading_text.destroy()
 
 		if self.enable_rbin_metadata_unsupported_version_msg:
-			self.draw_label(self.lang['main_rbin_metadata_unsupported_version'])
+			ttk.Label(text = self.lang['main_rbin_metadata_unsupported_version']).pack()
 			self.enable_rbin_metadata_unsupported_version_msg = False
 
 		if len(self.corrupted_rbdir_drives) > 0:
 			corrupted_text = f'{self.lang["main_warning"]}\n'
 			for drive in self.corrupted_rbdir_drives: corrupted_text += f'{self.lang["main_rb_corrupt"].format(drive + ":")}\n'
 			corrupted_text = corrupted_text[:-1]
-			self.draw_label(corrupted_text)
-			self.draw_blank()
+			ttk.Label(text = corrupted_text).pack()
+			ttk.Label().pack()
 
 		if len(self.bin_items) > 0:
-			button_frame = tk.Frame()
+			button_frame = FocusFrame()
 			ttk.Button(button_frame, text = self.lang['main_new_item'], command = self.new_item.create_item).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_restore_all'], command = self.restore_all).pack(side = 'left')
 			ttk.Button(button_frame, text = self.lang['main_empty_rb'], command = self.delete_all).pack(side = 'right')
 			button_frame.pack()
-			self.draw_blank()
+			ttk.Label().pack()
 
 			frame = VerticalScrolledFrame(self.window)
 			frame.pack(fill = 'both', expand = True)
 
 			if self.rbin_view == 'legacy':
-				# copied over from v0.1.2 tag
 				for item in self.bin_items:
-					item_frame = tk.Frame(frame.interior)
+					item_frame = FocusFrame(frame.interior)
 					ttk.Button(item_frame, text = self.lang['main_properties'], command = lambda e = item: self.itemproperties.show_properties(e)).pack(side = 'right')
 					ttk.Button(item_frame, text = self.lang['main_delete'], command = lambda e = item: self.delete_item(e)).pack(side = 'right')
 					ttk.Button(item_frame, text = self.lang['main_restore'], command = lambda e = item: self.restore_item(e)).pack(side = 'right')
 					ttk.Button(item_frame, text = self.lang['main_open'], command = lambda e = item: self.open_item(e)).pack(side = 'right')
-					self.draw_label(f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])), side = 'left', anchor = 'midleft', master = item_frame)
+					ttk.Label(text = f'{self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"]))}   {self.lang["main_folder"]}' if self.bin_items[item]['isdir'] else self.rbhandler.unicode_filter(os.path.basename(self.bin_items[item]["ogpath"])))
 					item_frame.pack(fill = 'both')			
 			# fallback/default view
 			else:
@@ -1069,11 +1106,10 @@ Architecture: {platform.machine()}{dnl+"Settings file is saved to working direct
 					item_frame.pack(fill = 'both')
 		else:
 			ttk.Button(text = self.lang['main_new_item'], command = self.new_item.create_item).pack()
-			self.draw_blank()
-			self.draw_label(self.lang['main_rbin_empty'])
+			ttk.Label().pack()
+			ttk.Label(text = self.lang['main_rbin_empty']).pack()
 
-		self.set_title()
-		self.window.mainloop()
+		self.window.update()
 
 	def check_item_exist(self, item):
 		if not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$I{item}') or not os.path.exists(f'{self.bin_items[item]["rbin_drive"]}:{self.rbdir}\\$R{item}'):
@@ -1256,16 +1292,16 @@ class DTMenu:
 	def draw_menu(self):
 		for w in self.win.winfo_children(): w.destroy()
 
-		self.gui.draw_label(self.gui.lang['title_dtformat'], font = self.gui.bold_font, master = self.win)
-		self.gui.draw_blank(master = self.win)
-		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
+		ttk.Label(self.win, text = self.gui.lang['title_dtformat'], font = self.gui.bold_font).pack()
+		ttk.Label(self.win).pack()
+		button_frame = FocusFrame(self.win); button_frame.pack(side = 'bottom')
 		ttk.Button(button_frame, text = self.gui.lang['ok'], command = self.save).pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['discard'], command = self.discard).pack(side = 'right')
-		self.gui.draw_blank(side = 'bottom', master = self.win)
+		ttk.Label(self.win).pack(side = 'bottom')
 		ttk.Button(self.win, text = self.gui.lang['reset'], command = self.reset).pack(side = 'bottom')
 		ttk.Button(self.win, text = self.gui.lang['preview'], command = self.preview).pack(side = 'bottom')
 
-		self.gui.draw_label(self.gui.lang['dtformat'], master = self.win)
+		ttk.Label(self.win, text = self.gui.lang['dtformat']).pack()
 
 		scroll = ttk.Scrollbar(self.win, orient = 'horizontal')
 		self.dt_entry = ttk.Entry(self.win, width = self.win.winfo_width(), justify = 'center', xscrollcommand = scroll.set)
@@ -1279,18 +1315,12 @@ class DTMenu:
 		if self.dt_preview:
 			if self.gui.unsupported_tcl: tk.messagebox.showerror(self.gui.lang['msgbox_error'], self.gui.lang['msgbox_error_unicode'])
 			# https://stackoverflow.com/a/49791321
-			else: self.gui.draw_label(f'{self.gui.lang["dtformat_preview"]}\n{self.gui.rbhandler.format_date(self.preview_date_time, self.text)}', justify = 'center', master = self.win)
+			else: ttk.Label(self.win, text = f'{self.gui.lang["dtformat_preview"]}\n{self.gui.rbhandler.format_date(self.preview_date_time, self.text)}', justify = 'center').pack()
 
 
 class ItemProperties:
 	def __init__(self, gui):
 		self.gui = gui
-
-		self.draw_label = self.gui.draw_label
-		self.draw_blank = self.gui.draw_blank
-		self.bold_font = self.gui.bold_font
-
-		self.refresh = self.gui.refresh
 
 		self.show_advanced = False
 
@@ -1299,90 +1329,90 @@ class ItemProperties:
 
 		item_info = self.gui.bin_items[item]
 
-		self.refresh()
-		self.draw_label(self.gui.lang['itemproperties_properties'], font = self.bold_font)
-		self.draw_blank()
+		self.gui.refresh()
+		ttk.Label(text = self.gui.lang['itemproperties_properties'], font = self.gui.bold_font).pack()
+		ttk.Label().pack()
 		ttk.Button(text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
-		self.draw_blank(side = 'bottom')
+		ttk.Label().pack(side = 'bottom')
 		ttk.Button(text = self.gui.lang['edit'], command = lambda: self.gui.new_item.edit_item(item)).pack(side = 'bottom')
 
 		ogname = os.path.basename(item_info['ogpath'])
 
-		ogname_frame = tk.Frame()
-		self.draw_label(self.gui.lang['itemproperties_ogname'], font = self.bold_font, side = 'left', master = ogname_frame)
-		if item_info['unterminated_str'] and ogname != '': self.draw_label(self.gui.lang['itemproperties_ogname_unterminated'], side = 'left', master = ogname_frame)
-		self.draw_label(self.gui.rbhandler.unicode_filter(ogname), side = 'right', master = ogname_frame)
+		ogname_frame = FocusFrame()
+		ttk.Label(ogname_frame, text = self.gui.lang['itemproperties_ogname'], font = self.gui.bold_font).pack(side = 'left')
+		if item_info['unterminated_str'] and ogname != '': ttk.Label(ogname_frame, text = self.gui.lang['itemproperties_ogname_unterminated']).pack(side = 'left')
+		ttk.Label(ogname_frame, text = self.gui.rbhandler.unicode_filter(ogname)).pack(side = 'right')
 		ogname_frame.pack(fill = 'x')
 
-		oglocation_frame = tk.Frame()
-		self.draw_label(self.gui.lang['oglocation'], font = self.bold_font, side = 'left', master = oglocation_frame)
-		if item_info['unterminated_str'] and ogname == '': self.draw_label(self.gui.lang['itemproperties_ogname_unterminated'], side = 'left', master = oglocation_frame)
-		self.draw_label('*', side = 'left', master = oglocation_frame)
-		self.draw_label(self.gui.rbhandler.unicode_filter(os.path.dirname(item_info['ogpath'])), side = 'right', master = oglocation_frame)
+		oglocation_frame = FocusFrame()
+		ttk.Label(text = self.gui.lang['oglocation'], font = self.gui.bold_font)
+		if item_info['unterminated_str'] and ogname != '': ttk.Label(oglocation_frame, text = self.gui.lang['itemproperties_ogname_unterminated']).pack(side = 'left')
+		ttk.Label(oglocation_frame, text = '*').pack(side = 'left')
+		ttk.Label(oglocation_frame, text = self.gui.rbhandler.unicode_filter(os.path.dirname(item_info['ogpath']))).pack(side = 'right')
 		oglocation_frame.pack(fill = 'x')
 
-		type_frame = tk.Frame()
-		self.draw_label(self.gui.lang['type'], font = self.bold_font, side = 'left', master = type_frame)
-		self.draw_label(f'{item_info["type"]}{"" if item_info["ext"] == None else " (" + item_info["ext"].lower() + ")"}', side = 'right', master = type_frame)
+		type_frame = FocusFrame()
+		ttk.Label(type_frame, text = self.gui.lang['type'], font = self.gui.bold_font).pack(side = 'left')
+		ttk.Label(type_frame, text = f'{item_info["type"]}{"" if item_info["ext"] == None else " (" + item_info["ext"].lower() + ")"}').pack(side = 'right')
 		type_frame.pack(fill = 'x')
 
 		size = item_info['size']
-		size_frame = tk.Frame()
-		self.draw_label(self.gui.lang['size'], font = self.bold_font, side = 'left', master = size_frame)
-		self.draw_label(self.gui.rbhandler.convert_size(size), side = 'right', master = size_frame)
+		size_frame = FocusFrame()
+		ttk.Label(size_frame, text = self.gui.lang['size'], font = self.gui.bold_font).pack(side = 'left')
+		ttk.Label(size_frame, text = self.gui.rbhandler.convert_size(size)).pack(side = 'right')
 		size_frame.pack(fill = 'x')
 
-		size_disk_frame = tk.Frame()
-		self.draw_label(self.gui.lang['itemproperties_size_disk'], font = self.bold_font, side = 'left', master = size_disk_frame)
-		self.draw_label(self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item)) + os.path.getsize(self.gui.rbhandler.get_rb_path(item, 'R'))), side = 'right', master = size_disk_frame)
+		size_disk_frame = FocusFrame()
+		ttk.Label(size_disk_frame, text = self.gui.lang['itemproperties_size_disk'], font = self.gui.bold_font).pack(side = 'left')
+		ttk.Label(size_disk_frame, text = self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item)) + os.path.getsize(self.gui.rbhandler.get_rb_path(item, 'R')))).pack(side = 'right')
 		size_disk_frame.pack(fill = 'x')
 
-		deldate_frame = tk.Frame()
-		self.draw_label(self.gui.lang['deldate'], font = self.bold_font, side = 'left', master = deldate_frame)
-		self.draw_label(self.gui.rbhandler.unicode_filter(item_info['deldate'].strftime(self.gui.date_format.encode('unicode-escape').decode()).encode().decode('unicode-escape')), side = 'right', master = deldate_frame)
+		deldate_frame = FocusFrame()
+		ttk.Label(deldate_frame, text = self.gui.lang['deldate'], font = self.gui.bold_font).pack(side = 'left')
+		ttk.Label(deldate_frame, text = self.gui.rbhandler.unicode_filter(self.gui.rbhandler.format_date(item_info['deldate']))).pack(side = 'right')
 		deldate_frame.pack(fill = 'x')
 
 		if self.show_advanced:
 			itemname = self.gui.rbhandler.unicode_filter(item)
 
-			self.draw_blank()
+			ttk.Label().pack()
 
-			rbin_name_i_frame = tk.Frame()
-			self.draw_label(self.gui.lang['itemproperties_rbin_name_i'], font = self.bold_font, side = 'left', master = rbin_name_i_frame)
-			self.draw_label(f'$I{itemname}', side = 'right', master = rbin_name_i_frame)
+			rbin_name_i_frame = FocusFrame()
+			ttk.Label(rbin_name_i_frame, text = self.gui.lang['itemproperties_rbin_name_i'], font = self.gui.bold_font).pack(side = 'left')
+			ttk.Label(rbin_name_i_frame, text = f'$I{itemname}').pack(side = 'right')
 			rbin_name_i_frame.pack(fill = 'x')
 
-			rbin_name_r_frame = tk.Frame()
-			self.draw_label(self.gui.lang['itemproperties_rbin_name_r'], font = self.bold_font, side = 'left', master = rbin_name_r_frame)
-			self.draw_label(f'$R{itemname}', side = 'right', master = rbin_name_r_frame)
+			rbin_name_r_frame = FocusFrame()
+			ttk.Label(rbin_name_r_frame, text = self.gui.lang['itemproperties_rbin_name_r'], font = self.gui.bold_font).pack(side = 'left')
+			ttk.Label(rbin_name_r_frame, text = f'$R{itemname}').pack(side = 'right')
 			rbin_name_r_frame.pack(fill = 'x')
 
-			rbin_location_frame = tk.Frame()
-			self.draw_label(self.gui.lang['itemproperties_rbin_location'], font = self.bold_font, side = 'left', master = rbin_location_frame)
-			self.draw_label('**', side = 'left', master = rbin_location_frame)
-			self.draw_label(self.gui.rbhandler.get_rb_path_friendly(item), side = 'right', master = rbin_location_frame)
+			rbin_location_frame = FocusFrame()
+			ttk.Label(rbin_location_frame, text = self.gui.lang['itemproperties_rbin_location'], font = self.gui.bold_font).pack(side = 'left')
+			ttk.Label(rbin_location_frame, text = '**').pack(side = 'left')
+			ttk.Label(rbin_location_frame, text = self.gui.rbhandler.get_rb_path_friendly(item)).pack(side = 'right')
 			rbin_location_frame.pack(fill = 'x')
 
 			real_size = os.path.getsize(self.gui.rbhandler.get_rb_path(item, 'R'))
 			if real_size != size:
-				real_size_frame = tk.Frame()
-				self.draw_label(self.gui.lang['itemproperties_real_size'], font = self.bold_font, side = 'left', master = real_size_frame)
-				self.draw_label(self.gui.rbhandler.convert_size(real_size), side = 'right', master = real_size_frame)
+				real_size_frame = FocusFrame()
+				ttk.Label(real_size_frame, text = self.gui.lang['itemproperties_real_size'], font = self.gui.bold_font).pack(side = 'left')
+				ttk.Label(real_size_frame, text = self.gui.rbhandler.convert_size(real_size)).pack(side = 'right')
 				real_size_frame.pack(fill = 'x')
 
-			metadata_size_frame = tk.Frame()
-			self.draw_label(self.gui.lang['itemproperties_metadata_size'], font = self.bold_font, side = 'left', master = metadata_size_frame)
-			self.draw_label(self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item))), side = 'right', master = metadata_size_frame)
+			metadata_size_frame = FocusFrame()
+			ttk.Label(metadata_size_frame, text = self.gui.lang['itemproperties_metadata_size'], font = self.gui.bold_font).pack(side = 'left')
+			ttk.Label(metadata_size_frame, text = self.gui.rbhandler.convert_size(os.path.getsize(self.gui.rbhandler.get_rb_path(item)))).pack(side = 'right')
 			metadata_size_frame.pack(fill = 'x')
 
-			version_frame = tk.Frame()
-			self.draw_label(self.gui.lang['itemproperties_version'], font = self.bold_font, side = 'left', master = version_frame)
-			self.draw_label(self.gui.rbhandler.get_md_version(item_info['version']), side = 'right', master = version_frame)
+			version_frame = FocusFrame()
+			ttk.Label(text = self.gui.lang['itemproperties_version'], font = self.gui.bold_font)
+			ttk.Label(text = self.gui.rbhandler.get_md_version(item_info['version']))
 			version_frame.pack(fill = 'x')
 
-		self.draw_label(self.gui.lang['itemproperties_location_asterisk'])
+		ttk.Label(text = self.gui.lang['itemproperties_location_asterisk']).pack()
 		if self.show_advanced:
-			self.draw_label(self.gui.lang['itemproperties_location_asterisk_2'])
+			ttk.Label(text = self.gui.lang['itemproperties_location_asterisk_2']).pack()
 			ttk.Button(text = self.gui.lang['itemproperties_reduced'], command = lambda e = item: self.set_advanced(e, False)).pack()
 		else: ttk.Button(text = self.gui.lang['itemproperties_advanced'], command = lambda e = item: self.set_advanced(e)).pack()
 
@@ -1548,56 +1578,57 @@ class NewItem:
 			self.gui.refresh()
 			self.gui.window.protocol('WM_DELETE_WINDOW', lambda: self.discard(True))
 			self.gui.reload_confirm_func = self.discard_confirm
-			if self.edit_mode_TEMP: self.gui.draw_label(self.gui.lang['new_item_edit'], font = self.gui.bold_font)
-			else: self.gui.draw_label(self.gui.lang['main_new_item'], font = self.gui.bold_font)
-			self.gui.draw_blank()
+			if self.edit_mode_TEMP: ttk.Label(text = self.gui.lang['new_item_edit'], font = self.gui.bold_font).pack()
+			else: ttk.Label(text = self.gui.lang['main_new_item'], font = self.gui.bold_font).pack()
+			ttk.Label().pack()
 			ttk.Button(text = self.gui.lang['discard'], command = lambda: self.discard()).pack(side = 'bottom')
 			ok_button = ttk.Button(text = self.gui.lang['ok'], command = self.set_return)
 			ok_button.pack(side = 'bottom')
 
-			path_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['new_item_path'], font = self.gui.bold_font, side = 'left', master = path_frame)
+			path_frame = FocusFrame()
+			path_frame.bind('<1>', lambda x: path_frame.focus_set())
+			ttk.Label(path_frame, text = self.gui.lang['new_item_path'], font = self.gui.bold_font).pack(side = 'left')
 			self.path_entry = ttk.Entry(path_frame, width = 30, justify = 'right')
 			self.path_entry.insert(0, self.path_TEMP)
 			self.path_entry.pack(side = 'right')
 			path_frame.pack(fill = 'x')
 
-			is_folder_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['new_item_folder'], font = self.gui.bold_font, side = 'left', master = is_folder_frame)
+			is_folder_frame = FocusFrame()
+			ttk.Label(is_folder_frame, text = self.gui.lang['new_item_folder'], font = self.gui.bold_font).pack(side = 'left')
 			ttk.Checkbutton(is_folder_frame, variable = self.is_folder_TEMP).pack(side = 'right')
 			is_folder_frame.pack(fill = 'x')
 
-			size_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['size'], font = self.gui.bold_font, side = 'left', master = size_frame)
-			self.gui.draw_label(self.gui.lang['new_item_bytes_note'], side = 'left', master = size_frame)
+			size_frame = FocusFrame()
+			ttk.Label(size_frame, text = self.gui.lang['size'], font = self.gui.bold_font).pack(side = 'left')
+			ttk.Label(size_frame, text = self.gui.lang['new_item_bytes_note']).pack(side = 'left')
 			self.size_entry = ttk.Entry(size_frame, width = 30, justify = 'right')
 			self.size_entry.insert(0, self.size_TEMP)
 			self.size_entry.pack(side = 'right')
 			size_frame.pack(fill = 'x')
 
-			deldate_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['deldate'], font = self.gui.bold_font, side = 'left', master = deldate_frame)
+			deldate_frame = FocusFrame()
+			ttk.Label(deldate_frame, text = self.gui.lang['deldate'], font = self.gui.bold_font).pack(side = 'left')
 			ttk.Button(deldate_frame, text = self.gui.lang['edit'], command = self.dt_picker.init_window).pack(side = 'right')
-			self.gui.draw_label(self.gui.rbhandler.unicode_filter(deldate_TEMP_str), side = 'right', master = deldate_frame)
+			ttk.Label(deldate_frame, text = self.gui.rbhandler.unicode_filter(deldate_TEMP_str)).pack(side = 'right')
 			deldate_frame.pack(fill = 'x')
 
-			version_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['itemproperties_version'], font = self.gui.bold_font, side = 'left', master = version_frame)
+			version_frame = FocusFrame()
+			ttk.Label(version_frame, text = self.gui.lang['itemproperties_version'], font = self.gui.bold_font).pack(side = 'left')
 			self.version_entry = ttk.Entry(version_frame, width = 30, justify = 'right')
 			self.version_entry.insert(0, self.version_TEMP)
 			self.version_entry.pack(side = 'right')
 			version_frame.pack(fill = 'x')
 
-			self.gui.draw_blank()
-			self.gui.draw_label(self.gui.lang['new_item_hacker_mode'], font = self.gui.bold_font)
+			ttk.Label().pack()
+			ttk.Label(text = self.gui.lang['new_item_hacker_mode'], font = self.gui.bold_font)
 
-			hacker_mode_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['new_item_hacker_mode_enable'], side = 'left', master = hacker_mode_frame)
+			hacker_mode_frame = FocusFrame()
+			ttk.Label(hacker_mode_frame, text = self.gui.lang['new_item_hacker_mode_enable']).pack(side = 'left')
 			ttk.Checkbutton(hacker_mode_frame, variable = self.hacker_mode_TEMP, command = lambda: self.set_hacker(self.hacker_mode_TEMP.get())).pack(side = 'right')
 			hacker_mode_frame.pack(fill = 'x')
 
-			no_terminator_frame = tk.Frame()
-			self.gui.draw_label(self.gui.lang['new_item_hacker_mode_no_terminator'], side = 'left', master = no_terminator_frame)
+			no_terminator_frame = FocusFrame()
+			ttk.Label(no_terminator_frame, text = self.gui.lang['new_item_hacker_mode_no_terminator']).pack(side = 'left')
 			no_terminator_checkbox = ttk.Checkbutton(no_terminator_frame, variable = self.no_terminator_TEMP)
 			if not self.hacker_mode_TEMP.get(): no_terminator_checkbox.config(state = 'disabled')
 			no_terminator_checkbox.pack(side = 'right')
@@ -1675,9 +1706,9 @@ class LocaleChooser:
 
 		self.old_locale = self.gui.locale_tk.get()
 
-		self.gui.draw_label(self.gui.lang['locale_chooser_choose'], justify = 'center', master = self.win)
+		ttk.Label(self.win, text = self.gui.lang['locale_chooser_choose'], justify = 'center').pack()
 		ttk.Combobox(self.win, textvariable = self.gui.locale_tk, values = self.gui.locales).pack()
-		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
+		button_frame = FocusFrame(self.win); button_frame.pack(side = 'bottom')
 		ttk.Button(button_frame, text = self.gui.lang['ok'], command = self.save).pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.cancel).pack(side = 'right')
 
@@ -1721,11 +1752,11 @@ class DTPicker:
 	def draw_menu(self):
 		self.deldate_aware = self.gui.new_item.deldate_TEMP.astimezone(self.gui.tz)
 
-		self.header_frame = tk.Frame(self.win); self.header_frame.pack()
-		self.gui.draw_label(self.gui.lang['dtpicker_title'], font = self.gui.bold_font, master = self.header_frame)
-		self.gui.draw_blank(master = self.header_frame)
-		self.type_frame = tk.Frame(self.win); self.type_frame.pack()
-		self.gui.draw_label(self.gui.lang['dtpicker_type'] + ' ', side = 'left', master = self.type_frame)
+		self.header_frame = FocusFrame(self.win); self.header_frame.pack()
+		ttk.Label(self.header_frame, text = self.gui.lang['dtpicker_title'], font = self.gui.bold_font)
+		ttk.Label(self.header_frame).pack()
+		self.type_frame = FocusFrame(self.win); self.type_frame.pack()
+		ttk.Label(self.type_frame, text = self.gui.lang['dtpicker_type'] + ' ').pack()
 		type_cb = ttk.Combobox(self.type_frame, textvariable = self.type_name, values = self.types_names)
 		type_cb.bind('<<ComboboxSelected>>', lambda x: self.load_type())
 		type_cb.pack()
@@ -1736,7 +1767,7 @@ class DTPicker:
 		for w in self.win.winfo_children():
 			if w not in (self.type_frame, self.header_frame): w.destroy()
 
-		button_frame = tk.Frame(self.win); button_frame.pack(side = 'bottom')
+		button_frame = FocusFrame(self.win); button_frame.pack(side = 'bottom')
 		self.ok_button = ttk.Button(button_frame, text = self.gui.lang['ok'], command = lambda: tk.messagebox.showerror(*[self.gui.lang['qmark']]*2)); self.ok_button.pack(side = 'left')
 		ttk.Button(button_frame, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'right')
 
@@ -1746,26 +1777,26 @@ class DTPicker:
 		elif self.type == 'ft': self.ft_type()
 
 	def basic_type(self):
-		self.gui.draw_blank(master = self.win)
+		ttk.Label(self.win).pack()
 
-		dmy_frame = tk.Frame(self.win)
+		dmy_frame = FocusFrame(self.win)
 
-		day_frame = tk.Frame(dmy_frame)
-		self.gui.draw_label(self.gui.lang['dtpicker_day'], side = 'top', master = day_frame)
+		day_frame = FocusFrame(dmy_frame)
+		ttk.Label(day_frame, text = self.gui.lang['dtpicker_day']).pack()
 		self.basic_day_entry = ttk.Entry(day_frame, width = 2)
 		self.basic_day_entry.insert(0, self.deldate_aware.day)
 		self.basic_day_entry.pack(side = 'bottom')
 		day_frame.pack(side = 'left')
 
-		month_frame = tk.Frame(dmy_frame)
-		self.gui.draw_label(self.gui.lang['dtpicker_month'], side = 'top', master = month_frame)
+		month_frame = FocusFrame(dmy_frame)
+		ttk.Label(month_frame, text = self.gui.lang['dtpicker_month']).pack()
 		self.basic_month_entry = ttk.Entry(month_frame, width = 2)
 		self.basic_month_entry.insert(0, self.deldate_aware.month)
 		self.basic_month_entry.pack(side = 'bottom')
 		month_frame.pack(side = 'left')
 
-		year_frame = tk.Frame(dmy_frame)
-		self.gui.draw_label(self.gui.lang['dtpicker_year'], side = 'top', master = year_frame)
+		year_frame = FocusFrame(dmy_frame)
+		ttk.Label(year_frame, text = self.gui.lang['dtpicker_year']).pack()
 		self.basic_year_entry = ttk.Entry(year_frame, width = 4)
 		self.basic_year_entry.insert(0, self.deldate_aware.year)
 		self.basic_year_entry.pack(side = 'bottom')
@@ -1773,19 +1804,19 @@ class DTPicker:
 
 		dmy_frame.pack()
 
-		self.gui.draw_blank(master = self.win)
+		ttk.Label(self.win).pack()
 
-		hm_frame = tk.Frame(self.win)
+		hm_frame = FocusFrame(self.win)
 
-		hour_frame = tk.Frame(hm_frame)
-		self.gui.draw_label(self.gui.lang['dtpicker_hour'], side = 'top', master = hour_frame)
+		hour_frame = FocusFrame(hm_frame)
+		ttk.Label(hour_frame, text = self.gui.lang['dtpicker_hour']).pack()
 		self.basic_hour_entry = ttk.Entry(hour_frame, width = 2)
 		self.basic_hour_entry.insert(0, self.deldate_aware.hour)
 		self.basic_hour_entry.pack(side = 'bottom')
 		hour_frame.pack(side = 'left')
 
-		minute_frame = tk.Frame(hm_frame)
-		self.gui.draw_label(self.gui.lang['dtpicker_minute'], side = 'top', master = minute_frame)
+		minute_frame = FocusFrame(hm_frame)
+		ttk.Label(minute_frame, text = self.gui.lang['dtpicker_minute']).pack()
 		self.basic_minute_entry = ttk.Entry(minute_frame, width = 2)
 		self.basic_minute_entry.insert(0, self.deldate_aware.minute)
 		self.basic_minute_entry.pack(side = 'bottom')
@@ -1816,12 +1847,12 @@ class DTPicker:
 		self.gui.new_item.reload()			
 
 	def ft_type(self):
-		self.gui.draw_blank(master = self.win)
-		self.gui.draw_label(self.gui.lang['dtpicker_ft_header'], master = self.win)
+		ttk.Label(self.win).pack()
+		ttk.Label(self.win, text = self.gui.lang['dtpicker_ft_header']).pack()
 		self.ft_entry = ttk.Entry(self.win, width = self.win.winfo_width(), justify = 'center')
 		self.ft_entry.insert(0, str(self.gui.rbhandler.dt_to_filetime(self.gui.new_item.deldate_TEMP)))
 		self.ft_entry.pack()
-		self.gui.draw_blank(master = self.win)
+		ttk.Label(self.win).pack()
 		
 		learn_more_label = ttk.Label(self.win, text = self.gui.lang['dtpicker_ft_learn_more'], font = self.gui.underline_font, foreground = 'blue', justify = 'center')
 		learn_more_label.bind('<Button-1>', lambda x: webbrowser.open_new_tab('https://learn.microsoft.com/windows/win32/sysinfo/file-times'))
@@ -1848,19 +1879,20 @@ class UpdaterGUI:
 	def __init__(self, gui):
 		self.gui = gui
 
-		self.auto = False
 		self.after_ms = 100
 
 		self.updater = Updater()
 
-	def init_window(self, auto = False):
+	def init_window(self, auto = False, auto_download_options = None, debug = False):
 		if not self.gui.updater_win_open:
 			self.gui.updater_win_open = True
 
-			if auto: self.auto = True
+			self.auto = auto
+			self.debug = debug
 
 			self.win = tk.Toplevel(self.gui.window)
-			self.win.geometry('400x200')
+
+			self.win.geometry('400x400')
 			self.win.resizable(False, False)
 			self.win.protocol('WM_DELETE_WINDOW', self.quit)
 			self.win.title(self.gui.lang['updater_title'])
@@ -1871,27 +1903,35 @@ class UpdaterGUI:
 				tk.messagebox.showerror('Hmmm?', err_text)
 				sys.exit()
 
-			if self.auto:
-				self.win.withdraw()
-				self.gui.set_title(self.gui.lang['updater_checking'])
 			self.win.focus()
 			self.win.grab_set()
-			self.main()
+			if self.debug: self.debug_menu()
+			elif self.auto:
+				self.win.after(0, lambda: self.draw_download_msg(*auto_download_options))
+			else: self.main()
 
 	def quit(self):
-		self.win.grab_release()
+		if not self.auto: self.win.grab_release()
 		self.win.destroy()
 		self.gui.updater_win_open = False
-		if self.auto:
-			self.auto = False
-			self.gui.main()
 
 	def main(self):
 		self.update_thread = ThreadWithResult(target = self.updater.check_updates, args = (self.gui.check_prerelease_version.get(),))
 
 		self.draw_check()
-		self.win.after(1, self.start_thread)
-		self.win.mainloop()
+		self.start_thread()
+
+	def debug_menu(self):
+		ttk.Button(self.win, text = 'Check updates', command = self.main).pack()
+		ttk.Button(self.win, text = 'Message test', command = lambda: self.draw_msg('Updater message test.\nLine 2\nLine 3\nLine 4')).pack()
+		ttk.Button(self.win, text = 'New update screen test', command = lambda: self.draw_download_msg('testbuild69', 'b1.0.0', False, '''\
+Hello! **This is a *test* of the updater\'s Markdown viewer**, made possible with the [Markdown](https://pypi.org/project/Markdown/), [`mdformat`](https://pypi.org/project/mdformat/), and [TkinterWeb](https://pypi.org/project/tkinterweb/) modules.
+
+By the way, [here\'s the GitHub repository](../../) if you want to check it out. And here\'s [TkTemplate](../../../tktemplate) which is a Tkinter template based on RBEditor.
+
+While you\'re here, why don\'t you check out my [Discord server](//gamingwithevets.github.io/redirector/discord)? It\'s pretty empty here, and I\'d really appreciate it if you could join.\
+''')).pack()
+		ttk.Button(self.win, text = 'Quit', command = self.quit).pack(side = 'bottom')
 
 	def start_thread(self):
 		self.update_thread.start()
@@ -1912,18 +1952,16 @@ class UpdaterGUI:
 	def draw_check(self):
 		for w in self.win.winfo_children(): w.destroy()
 
-		self.gui.draw_label(self.gui.lang['updater_checking'], master = self.win)
+		ttk.Label(self.win, text = self.gui.lang['updater_checking']).pack()
 		self.progressbar = ttk.Progressbar(self.win, orient = 'horizontal', length = 100, mode = 'determinate')
 		self.progressbar.pack()
-		self.gui.draw_label(self.gui.lang['updater_donotclose'], font = self.gui.bold_font, justify = 'center', side = 'bottom', master = self.win)
+		ttk.Label(self.win, text = self.gui.lang['updater_donotclose'], font = self.gui.bold_font, justify = 'center').pack()
 
 	def draw_msg(self, msg):
-		if self.auto:
-			self.gui.set_title()
-			self.quit()
+		if self.auto: self.quit()
 		else:
 			for w in self.win.winfo_children(): w.destroy()
-			self.gui.draw_label(msg, justify = 'center', master = self.win)
+			ttk.Label(self.win, text = msg, justify = 'center').pack()
 			ttk.Button(self.win, text = self.gui.lang['back'], command = self.quit).pack(side = 'bottom')
 
 	@staticmethod
@@ -1934,32 +1972,35 @@ class UpdaterGUI:
 		return True
 
 	def draw_download_msg(self, title, tag, prever, body):
-		if self.auto:
-			self.win.deiconify()
-			self.gui.set_title()
+		if self.auto: self.win.deiconify()
 		for w in self.win.winfo_children(): w.destroy()
-		self.gui.draw_label(f'''\
+		ttk.Label(self.win, text = f'''\
 {self.gui.lang['updater_newupdate']}
 {self.gui.lang['updater_currver']}{self.gui.version}{self.gui.lang['updater_prerelease'] if prerelease else ''}
 {self.gui.lang['updater_newver']}{title}{self.gui.lang['updater_prerelease'] if prever else ''}\
-''', justify = 'center', master = self.win)
+''', justify = 'center').pack()
 		ttk.Button(self.win, text = self.gui.lang['cancel'], command = self.quit).pack(side = 'bottom')
 		ttk.Button(self.win, text = self.gui.lang['updater_download'], command = lambda: self.open_download(tag)).pack(side = 'bottom')
 
-		self.gui.draw_blank(master = self.win)
+		ttk.Label(self.win).pack()
 
 		packages_missing = []
 		for package in ('markdown', 'mdformat-gfm', 'tkinterweb'):
 			if not self.package_installed(package): packages_missing.append(package)
 
-		if packages_missing: self.gui.draw_label(f'Missing package(s): {", ".join(packages_missing[:2])}{" and " + str(len(packages_missing) - 2) + " others" if len(packages_missing) > 2 else ""}', font = self.gui.bold_font, master = self.win)
+		if packages_missing: ttk.Label(self.win, text = f'Missing package(s): {", ".join(packages_missing[:2])}{" and " + str(len(packages_missing) - 2) + " others" if len(packages_missing) > 2 else ""}', font = self.gui.bold_font).pack()
 		else:
 			import markdown
 			import mdformat
 			import tkinterweb
 
 			html = tkinterweb.HtmlFrame(self.win, messages_enabled = False)
-			html.load_html(markdown.markdown(mdformat.text(body)).replace('../..', 'https://github.com/gamingwithevets/rbeditor'))
+			formatted_body = body
+			formatted_body = formatted_body.replace('(../..', f'(https://github.com/{username}/{repo_name}')
+			formatted_body = formatted_body.replace('(../../..', f'(https://github.com/{username}')
+			formatted_body = formatted_body.replace('(//', f'(https://')
+
+			html.load_html(markdown.markdown(formatted_body))
 			html.on_link_click(webbrowser.open_new_tab)
 			html.pack()
 		
@@ -2146,10 +2187,16 @@ class SHFILEINFOW(ctypes.Structure):
 		('szTypeName', ctypes.wintypes.WCHAR * 80)
 	]
 
+# https://stackoverflow.com/a/24072653
+class FocusFrame(tk.Frame):
+	def __init__(self, *args, **kwargs):
+		tk.Frame.__init__(self, *args, **kwargs)
+		self.bind('<1>', lambda event: self.focus_set())
+
 # https://stackoverflow.com/a/16198198
-class VerticalScrolledFrame(tk.Frame):
+class VerticalScrolledFrame(FocusFrame):
 	def __init__(self, parent, *args, **kw):
-		tk.Frame.__init__(self, parent, *args, **kw)
+		FocusFrame.__init__(self, parent, *args, **kw)
 
 		vscrollbar = tk.Scrollbar(self, orient = 'vertical')
 		vscrollbar.pack(fill = 'y', side = 'right')
@@ -2160,7 +2207,7 @@ class VerticalScrolledFrame(tk.Frame):
 		canvas.xview_moveto(0)
 		canvas.yview_moveto(0)
 
-		self.interior = interior = tk.Frame(canvas)
+		self.interior = interior = FocusFrame(canvas)
 		interior_id = canvas.create_window(0, 0, window = interior, anchor = 'nw')
 
 		def _configure_interior(event):
@@ -2201,7 +2248,7 @@ class FExplorerFrame(tk.Frame):
 		style.configure('Sel.TButton', background = self.select_color, height = 10)
 
 		self.blank = ttk.Label(self, background = self.select_color, anchor = 'sw')
-		self.button_frame = tk.Frame(self)
+		self.button_frame = FocusFrame(self)
 		ttk.Button(self.button_frame, text = self.gui.lang['main_restore'], style = 'Sel.TButton', command = lambda: self.gui.restore_item(item)).pack(side = 'left')
 		ttk.Button(self.button_frame, text = self.gui.lang['main_delete'], style = 'Sel.TButton', command = lambda: self.gui.delete_item(item)).pack(side = 'right')
 

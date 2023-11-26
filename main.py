@@ -8,8 +8,7 @@ python_requirement = (3, 6, 0, 'alpha', 4)  # 3.6.0a4
 
 import platform
 if sys.version_info < python_requirement:
-	print('Oops! Your Python version is too old.\n')
-	print(f'Requirement: Python {".".join(map(str, python_requirement))}\nYou have   : Python {platform.python_version()}')
+	print('Oops! Your Python version is too old.\nRequirement: Python {}'.format('.'.join(map(str, python_requirement))) + '\nYou have   : Python {}'.format(platform.python_version()))
 	print('\nGet a newer version!')
 	sys.exit()
 
@@ -24,19 +23,15 @@ Now scram!''')
 import os
 import traceback
 
-username = 'gamingwithevets'
-reponame = 'rbeditor'
-
 import tkinter.messagebox
 try: import gui
 except ImportError:
-	err_text = f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{username}/{reponame}/issues'
+	err_text = f'Whoops! The script "gui.py" is required.\nCan you make sure the script is in "{gui.temp_path}"?\n\n{traceback.format_exc()}\nIf this problem persists, please report it here:\nhttps://github.com/{gui.username}/{gui.repo_name}/issues'
 	print(err_text)
 	tk.messagebox.showerror('Hmmm?', err_text)
 	sys.exit()
 
 try:
-	g = gui.GUI(tk.Tk())
+	g = gui.GUI()
 	g.start_main()
-except SystemExit: sys.exit()
 except Exception: gui.report_error()
