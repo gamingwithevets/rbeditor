@@ -1,7 +1,5 @@
 **RBEditor** is a tool that can edit the Recycle Bin's contents and also open and edit files and folders inside the Recycle Bin. The program was inspired by [this video by Mr. Fly Tech](https://www.youtube.com/watch?v=jk8Io_cgYyY).
 
-NOTE: RBEditor is currently in beta; that means **bugs and glitches** may happen when you use the program.
-
 **Supports Windows Vista - Windows 11**
 
 ![RBEditor v0.2.0 on W11](image.png)  
