@@ -62,7 +62,7 @@ version = '1.0.0'
 internal_version = 'v1.0.0'
 prerelease = False
 
-license = 'Expat'
+license = 'Expat (MIT)'
 
 try: import lang
 except ImportError:
