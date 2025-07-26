@@ -62,7 +62,7 @@ version = '1.0.0'
 internal_version = 'v1.0.0'
 prerelease = False
 
-license = 'MIT'
+license = 'Expat'
 
 try: import lang
 except ImportError:
@@ -911,7 +911,7 @@ class GUI:
 {self.lang['about_beta_build'] if prerelease else ''}
 {self.lang['about_licensed'].format(license)}
 
-Copyright (c) 2022-2023 GamingWithEvets Inc.
+Copyright (c) 2022-2025 GamingWithEvets Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy \
 of this software and associated documentation files (the "Software"), to deal \
