@@ -36,13 +36,13 @@ import getpass
 import binascii
 import tempfile
 import winsound
+import importlib
 import threading
 import win32file
 import subprocess
 import webbrowser
 import collections
 import configparser
-import pkg_resources
 import urllib.request
 import ctypes.wintypes
 from queue import Queue
@@ -58,8 +58,8 @@ name = 'RBEditor'
 username = 'gamingwithevets'
 repo_name = 'rbeditor'
 
-version = '1.0.0'
-internal_version = 'v1.0.0'
+version = '1.0.0_01'
+internal_version = 'v1.0.0_01'
 prerelease = False
 
 license = 'Expat (MIT)'
@@ -1422,7 +1422,7 @@ class ItemProperties:
 
 	def quit(self):
 		self.show_advanced = False
-		self.refresh(True)
+		self.gui.refresh(True)
 
 class NewItem:
 	def __init__(self, gui):
@@ -1966,10 +1966,7 @@ While you\'re here, why don\'t you check out my [Discord server](//gamingwitheve
 
 	@staticmethod
 	def package_installed(package):
-		try: pkg_resources.get_distribution(package)
-		except: return False
-
-		return True
+		return importlib.util.find_spec(package) is not None
 
 	def draw_download_msg(self, title, tag, prever, body):
 		if self.auto: self.win.deiconify()
